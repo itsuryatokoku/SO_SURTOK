@@ -143,7 +143,7 @@
                 </div>
             </section>
 
-            <!-- SESI PETUGAS DAN RAK (Aktif pada Mode SO Fisik maupun Revisi SO) -->
+            <!-- SESI PETUGAS DAN RAK -->
             <section id="section-session-box" class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-3.5 space-y-2.5">
                 <div class="flex items-center justify-between pb-2 border-b border-slate-100">
                     <span class="text-xs font-bold text-slate-700 flex items-center uppercase tracking-wide">
@@ -279,7 +279,6 @@
                         </button>
                     </div>
 
-                    <!-- Tombol Cepat Penambahan Qty -->
                     <div class="grid grid-cols-5 gap-1.5 pt-1">
                         <button type="button" onclick="adjustQty(1)" class="py-1.5 bg-slate-100 hover:bg-indigo-50 text-slate-700 font-bold text-xs rounded-lg border border-slate-200 btn-touch">+1</button>
                         <button type="button" onclick="adjustQty(5)" class="py-1.5 bg-slate-100 hover:bg-indigo-50 text-slate-700 font-bold text-xs rounded-lg border border-slate-200 btn-touch">+5</button>
@@ -756,8 +755,18 @@ function doPost(e) {
     var record = data.record ? data.record : data;
 
     // 1. UPDATE KHUSUS MODE REVISI SO (HANYA UPDATE KOLOM G / QTY REVISI DI SHEET 'Revisi SO')
-    if (data.action === "update_revisi" || record.action === "update_revisi" || data.qty_revisi !== undefined || record.qty_revisi !== undefined) {
-      var sheetRevisi = ss.getSheetByName("Revisi SO");
+    var isRevisi = (data.action === "update_revisi" || record.action === "update_revisi" || data.qty_revisi !== undefined || record.qty_revisi !== undefined);
+
+    if (isRevisi) {
+      var sheets = ss.getSheets();
+      var sheetRevisi = null;
+      for (var i = 0; i < sheets.length; i++) {
+        if (sheets[i].getName().trim().toLowerCase() === "revisi so") {
+          sheetRevisi = sheets[i];
+          break;
+        }
+      }
+
       if (!sheetRevisi) {
         return ContentService.createTextOutput(JSON.stringify({"result": "error", "message": "Sheet 'Revisi SO' tidak ditemukan"}))
           .setMimeType(ContentService.MimeType.JSON);
@@ -769,15 +778,31 @@ function doPost(e) {
           .setMimeType(ContentService.MimeType.JSON);
       }
 
+      var qtyRev = record.qty_revisi !== undefined ? record.qty_revisi : (data.qty_revisi !== undefined ? data.qty_revisi : record.qty);
+
+      var targetRow = -1;
       var finder = sheetRevisi.getRange("A:A").createTextFinder(kodeItem).matchEntireCell(true);
       var cell = finder.findNext();
-
       if (cell) {
-        var row = cell.getRow();
-        var qtyRev = record.qty_revisi !== undefined ? record.qty_revisi : (data.qty_revisi !== undefined ? data.qty_revisi : record.qty);
-        sheetRevisi.getRange(row, 7).setValue(qtyRev); // Tulis HANYA ke Kolom G (QTY Revisi)
+        targetRow = cell.getRow();
+      } else {
+        var lastRow = sheetRevisi.getLastRow();
+        if (lastRow >= 1) {
+          var colAValues = sheetRevisi.getRange(1, 1, lastRow, 1).getValues();
+          for (var r = 0; r < colAValues.length; r++) {
+            var valInCell = String(colAValues[r][0] || '').replace(/^'/, '').trim();
+            if (valInCell.toLowerCase() === kodeItem.toLowerCase()) {
+              targetRow = r + 1;
+              break;
+            }
+          }
+        }
+      }
+
+      if (targetRow > 0) {
+        sheetRevisi.getRange(targetRow, 7).setValue(qtyRev); // Tulis HANYA ke Kolom G (QTY Revisi)
         SpreadsheetApp.flush();
-        return ContentService.createTextOutput(JSON.stringify({"result": "success", "action": "revisi_updated", "row": row, "qty_revisi": qtyRev}))
+        return ContentService.createTextOutput(JSON.stringify({"result": "success", "action": "revisi_updated", "row": targetRow, "qty_revisi": qtyRev}))
           .setMimeType(ContentService.MimeType.JSON);
       } else {
         return ContentService.createTextOutput(JSON.stringify({"result": "not_found", "message": "Kode Item " + kodeItem + " tidak ditemukan di Sheet Revisi SO"}))
