@@ -316,8 +316,8 @@
                     <div class="flex items-center space-x-2 text-indigo-950">
                         <i class="fa-solid fa-database text-emerald-600 text-base"></i>
                         <div>
-                            <div class="font-black text-[11px]">Sync Database Supabase ➔ Google Sheet</div>
-                            <div class="text-[9px] text-indigo-700">Kirim ulang seluruh data SO dari Supabase ke Sheet</div>
+                            <div class="font-black text-[11px]">Sync Database Supabase ➔ Sheet Hasil SO</div>
+                            <div class="text-[9px] text-indigo-700">Kirim ulang seluruh data SO dari Supabase ke Sheet Hasil SO</div>
                         </div>
                     </div>
                     <button onclick="syncSupabaseToGoogleSheets()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-extrabold rounded-xl text-[10px] shadow-sm btn-touch flex items-center space-x-1 shrink-0">
@@ -499,7 +499,7 @@
                     
                     <div class="pt-1">
                         <label class="block font-bold text-slate-800 text-[10px] flex items-center mb-0.5">
-                            <i class="fa-solid fa-paper-plane text-emerald-600 mr-1"></i> Webhook Auto-Sync (Append Row GSheet)
+                            <i class="fa-solid fa-paper-plane text-emerald-600 mr-1"></i> Webhook Auto-Sync (Sheet Hasil SO)
                         </label>
                         <input type="text" id="cfg-webhook-url" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-white border border-slate-300 rounded-lg p-2 font-mono text-[10px] outline-none focus:ring-2 focus:ring-emerald-500">
                     </div>
@@ -662,7 +662,7 @@ ALTER TABLE public.stock_opname_logs DISABLE ROW LEVEL SECURITY;
 
             <div class="p-4 space-y-3 overflow-y-auto text-xs flex-1">
                 <p class="text-[11px] text-slate-600">
-                    Pasang kode script ini di Google Spreadsheet Anda agar setiap hasil scan Stok Opname otomatis tercatat di Sheet **Stok Opname**:
+                    Pasang kode script ini di Google Spreadsheet Anda agar setiap hasil scan Stok Opname otomatis tercatat di Sheet **Hasil SO**:
                 </p>
 
                 <div class="relative bg-slate-950 text-slate-100 p-3 rounded-xl font-mono text-[10px] leading-relaxed overflow-x-auto border border-slate-800">
@@ -672,17 +672,20 @@ ALTER TABLE public.stock_opname_logs DISABLE ROW LEVEL SECURITY;
                     </button>
                     <pre id="appscript-code-block" class="whitespace-pre-wrap">
 function doPost(e) {
+  var lock = LockService.getScriptLock();
+  lock.tryLock(10000); // Tunggu maksimal 10 detik jika ada request bersamaan
+
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var data = JSON.parse(e.postData.contents);
     var record = data.record ? data.record : data;
     var id = record.id ? String(record.id) : '';
 
-    // Catat ke Sheet Stok Opname
-    var sheetSO = ss.getSheetByName("Stok Opname");
+    // Catat ke Sheet Hasil SO
+    var sheetSO = ss.getSheetByName("Hasil SO");
     if (!sheetSO) {
-      sheetSO = ss.insertSheet("Stok Opname");
-      sheetSO.appendRow(["ID SO", "Waktu", "Petugas", "Peran Petugas", "Rak", "Kode Item", "Kode Original", "Nama Produk", "Family", "Qty"]);
+      sheetSO = ss.insertSheet("Hasil SO");
+      sheetSO.appendRow(["ID SO", "Time", "Petugas", "peran Petugas", "Rak", "Kode Item", "Kode Original", "Nama Produk", "Family", "qty"]);
     }
     
     // Cek apakah ID SO sudah ada di Sheet (Mencegah Data Double)
@@ -691,7 +694,7 @@ function doPost(e) {
       if (lastRow > 1) {
         var existingIds = sheetSO.getRange(2, 1, lastRow - 1, 1).getValues();
         for (var i = 0; i < existingIds.length; i++) {
-          if (String(existingIds[i][0]) === id) {
+          if (String(existingIds[i][0]).replace(/^'/, '') === id.replace(/^'/, '')) {
             return ContentService.createTextOutput(JSON.stringify({"result": "skipped_duplicate", "id": id}))
               .setMimeType(ContentService.MimeType.JSON);
           }
@@ -719,6 +722,8 @@ function doPost(e) {
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({"result": "error", "message": err.toString()}))
       .setMimeType(ContentService.MimeType.JSON);
+  } finally {
+    lock.releaseLock();
   }
 }
                     </pre>
@@ -1790,7 +1795,7 @@ function doPost(e) {
                     return;
                 }
 
-                showToast(`Mengirim ${data.length} data SO ke Google Sheets...`, "info");
+                showToast(`Mengirim ${data.length} data SO ke Sheet Hasil SO...`, "info");
 
                 let successCount = 0;
                 for (let row of data) {
@@ -1813,7 +1818,7 @@ function doPost(e) {
                 renderAdminDashboard();
                 updatePendingSyncBanner();
 
-                showToast(`✓ Berhasil sync ${successCount} dari ${data.length} item Supabase ke Google Sheet!`, "success");
+                showToast(`✓ Berhasil sync ${successCount} dari ${data.length} item Supabase ke Sheet Hasil SO!`, "success");
 
             } catch (err) {
                 console.error("Sync Supabase to GSheet error:", err);
@@ -2159,21 +2164,21 @@ function doPost(e) {
 
             const rows = localHistorySO.map(i => ({
                 "ID SO": i.id,
-                "Waktu": new Date(i.timestamp).toLocaleString('id-ID'),
+                "Time": new Date(i.timestamp).toLocaleString('id-ID'),
                 "Petugas": i.petugas,
-                "Peran Petugas": i.peran || '-',
+                "peran Petugas": i.peran || '-',
                 "Rak": i.rak,
                 "Kode Item": i.kode_stock,
                 "Kode Original": i.original_code || '-',
                 "Nama Produk": i.nama_barang,
                 "Family": i.family || '-',
-                "Qty": i.qty_fisik !== undefined ? i.qty_fisik : (i.qty !== undefined ? i.qty : 0)
+                "qty": i.qty_fisik !== undefined ? i.qty_fisik : (i.qty !== undefined ? i.qty : 0)
             }));
 
             const ws = XLSX.utils.json_to_sheet(rows);
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Stok Opname");
-            XLSX.writeFile(wb, `Stock_Opname_${new Date().toISOString().slice(0,10)}.xlsx`);
+            XLSX.utils.book_append_sheet(wb, ws, "Hasil SO");
+            XLSX.writeFile(wb, `Hasil_SO_${new Date().toISOString().slice(0,10)}.xlsx`);
             showToast("File Excel berhasil diunduh!", "success");
         }
     </script>
