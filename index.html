@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Html5Qrcode for Mobile Camera Barcode Scanning -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-    <!-- SheetJS for Excel and CSV Exporting -->
+    <!-- SheetJS for Excel Exporting -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- Supabase JS v2 Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -126,9 +126,25 @@
         <!-- Toast Notification Container -->
         <div id="toast-container" class="fixed top-24 left-1/2 -translate-x-1/2 z-50 flex flex-col space-y-2 pointer-events-none w-11/12 max-w-sm"></div>
 
-        <!-- VIEW 1: SCANNER & INPUT OPNAME -->
+        <!-- VIEW 1: SCANNER & INPUT OPNAME / REVISI -->
         <div id="view-scan-so" class="space-y-3">
-            <section class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-3.5 space-y-2.5">
+            
+            <!-- MODE SWITCHER: SO FISIK VS REVISI SO -->
+            <section class="bg-white rounded-2xl p-1.5 shadow-sm border border-slate-200">
+                <div class="grid grid-cols-2 gap-1 text-xs font-black text-center">
+                    <button id="mode-btn-so" onclick="setAppOperationMode('SO')" class="py-2 rounded-xl bg-indigo-600 text-white shadow-sm flex items-center justify-center space-x-1.5 transition">
+                        <i class="fa-solid fa-boxes-stacked text-xs"></i>
+                        <span>Stock Opname Fisik</span>
+                    </button>
+                    <button id="mode-btn-revisi" onclick="setAppOperationMode('REVISI')" class="py-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-rose-50 hover:text-rose-700 flex items-center justify-center space-x-1.5 transition">
+                        <i class="fa-solid fa-pen-to-square text-xs text-rose-600"></i>
+                        <span>Revisi SO (Sheet)</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- SESI PETUGAS DAN RAK (Aktif pada Mode SO Fisik maupun Revisi SO) -->
+            <section id="section-session-box" class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-3.5 space-y-2.5">
                 <div class="flex items-center justify-between pb-2 border-b border-slate-100">
                     <span class="text-xs font-bold text-slate-700 flex items-center uppercase tracking-wide">
                         <i class="fa-solid fa-user-gear text-indigo-600 mr-1.5"></i> Sesi Petugas &amp; Rak
@@ -154,7 +170,7 @@
                             </label>
                             <div class="relative">
                                 <select id="select-officer-dropdown" onchange="handleOfficerSelectChange()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none">
-                                    <option value="">-- Pilih dari GSheet / Supabase --</option>
+                                    <option value="">-- Pilih dari GSheet --</option>
                                 </select>
                                 <input type="text" id="input-officer-custom" placeholder="Ketik Nama..." class="hidden mt-1 w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none">
                             </div>
@@ -189,10 +205,11 @@
                 </div>
             </section>
 
+            <!-- SCANNER CONTAINER -->
             <section class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-3.5 space-y-3">
                 <div class="flex items-center justify-between">
-                    <span class="text-xs font-bold text-slate-700 flex items-center uppercase tracking-wide">
-                        <i class="fa-solid fa-barcode text-indigo-600 mr-1.5"></i> Scan / Ketik Barcode
+                    <span id="scan-box-title" class="text-xs font-bold text-slate-700 flex items-center uppercase tracking-wide">
+                        <i class="fa-solid fa-barcode text-indigo-600 mr-1.5"></i> Scan / Ketik Kode Stock
                     </span>
                     <button onclick="toggleCameraScanner()" class="text-[11px] px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl border border-indigo-200 transition flex items-center space-x-1.5 btn-touch">
                         <i class="fa-solid fa-camera"></i>
@@ -219,7 +236,7 @@
                 </div>
             </section>
 
-            <!-- PRODUCT RESULT CARD -->
+            <!-- PRODUCT RESULT CARD (STOCK OPNAME FISIK) -->
             <section id="section-product-result" class="hidden bg-white rounded-2xl shadow-md border-2 border-indigo-500/80 p-3.5 space-y-3 animate-in fade-in zoom-in duration-150">
                 <div class="bg-indigo-50/80 border border-indigo-100 rounded-xl p-3 space-y-2">
                     <div class="flex justify-between items-start">
@@ -246,7 +263,7 @@
                 <div class="space-y-2">
                     <div class="flex justify-between items-center">
                         <label class="block text-[10px] font-extrabold text-slate-500 uppercase">
-                            Qty Terhitung <span class="text-rose-500">*</span>
+                            Qty Terhitung Fisik <span class="text-rose-500">*</span>
                         </label>
                     </div>
 
@@ -283,6 +300,104 @@
                     </button>
                 </div>
             </section>
+
+            <!-- PRODUCT RESULT CARD FOR REVISI SO -->
+            <section id="section-revisi-result" class="hidden bg-white rounded-2xl shadow-md border-2 border-rose-500 p-3.5 space-y-3 animate-in fade-in zoom-in duration-150">
+                <div class="bg-rose-50/80 border border-rose-200 rounded-xl p-3 space-y-2">
+                    <div class="flex justify-between items-start">
+                        <div class="space-y-1 pr-2">
+                            <div class="flex items-center space-x-1.5 flex-wrap gap-y-1">
+                                <span id="rev-product-code" class="inline-block bg-rose-600 text-white font-mono text-[11px] font-black px-2 py-0.5 rounded-md">
+                                    KODE-ITEM
+                                </span>
+                                <span id="rev-product-orig" class="inline-block bg-slate-200 text-slate-700 font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-md">
+                                    ORIG-CODE
+                                </span>
+                                <span class="inline-block bg-rose-100 text-rose-800 font-bold text-[10px] px-2 py-0.5 rounded-md">
+                                    Revisi SO
+                                </span>
+                            </div>
+                            <h2 id="rev-product-name" class="font-extrabold text-sm text-slate-900 leading-snug pt-0.5">
+                                Nama Produk
+                            </h2>
+                        </div>
+                    </div>
+
+                    <!-- DATA REFERENSI KUNING SHEET REVISI SO -->
+                    <div class="grid grid-cols-3 gap-1.5 pt-2 border-t border-rose-200/70 text-center">
+                        <div class="bg-amber-100/80 border border-amber-300/80 rounded-lg p-1.5">
+                            <div class="text-[9px] font-bold text-amber-800 uppercase">Qty SO</div>
+                            <div id="rev-data-qty-so" class="text-sm font-black text-amber-950">0</div>
+                        </div>
+                        <div class="bg-amber-100/80 border border-amber-300/80 rounded-lg p-1.5">
+                            <div class="text-[9px] font-bold text-amber-800 uppercase">Qty Onhand</div>
+                            <div id="rev-data-qty-onhand" class="text-sm font-black text-amber-950">0</div>
+                        </div>
+                        <div class="bg-amber-100/80 border border-amber-300/80 rounded-lg p-1.5">
+                            <div class="text-[9px] font-bold text-amber-800 uppercase">Selisih</div>
+                            <div id="rev-data-selisih" class="text-sm font-black text-rose-700">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Input QTY REVISI (Kolom Merah / Kolom G) -->
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center">
+                        <label class="block text-[11px] font-black text-rose-700 uppercase flex items-center">
+                            <i class="fa-solid fa-pen-to-square mr-1"></i> QTY REVISI (KOLOM MERAH) <span class="text-rose-500 ml-1">*</span>
+                        </label>
+                    </div>
+
+                    <div class="flex items-center space-x-2">
+                        <button type="button" onclick="adjustQtyRevisi(-1)" class="w-12 h-12 rounded-xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 font-extrabold text-lg text-slate-700 shadow-sm flex items-center justify-center btn-touch">
+                            <i class="fa-solid fa-minus"></i>
+                        </button>
+                        
+                        <input type="number" id="input-qty-revisi" inputmode="decimal" value="0" min="0" step="any" class="flex-1 bg-rose-50 border-2 border-rose-600 rounded-xl h-12 text-center text-2xl font-black text-rose-900 outline-none focus:ring-2 focus:ring-rose-500 focus:bg-white shadow-inner">
+                        
+                        <button type="button" onclick="adjustQtyRevisi(1)" class="w-12 h-12 rounded-xl bg-rose-100 hover:bg-rose-200 active:bg-rose-300 font-extrabold text-lg text-rose-800 shadow-sm flex items-center justify-center btn-touch">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="grid grid-cols-3 gap-2 pt-1">
+                    <button type="button" onclick="resetRevisiSelection()" class="py-3 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs btn-touch border border-slate-200">
+                        Batal
+                    </button>
+                    <button type="button" id="btn-save-revisi" onclick="saveRevisiSO()" class="col-span-2 py-3 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white font-extrabold rounded-xl text-xs flex items-center justify-center space-x-1.5 shadow-md btn-touch">
+                        <i class="fa-solid fa-floppy-disk text-base"></i>
+                        <span>SIMPAN QTY REVISI</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- SECTION DAFTAR LIST ITEM REVISI SO (LIST VIEW EDITING) -->
+            <section id="section-revisi-list-container" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200/80 p-3.5 space-y-3">
+                <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                    <span class="text-xs font-bold text-rose-700 flex items-center uppercase tracking-wide">
+                        <i class="fa-solid fa-list-check text-rose-600 mr-1.5"></i> Daftar Item Revisi SO (<span id="count-revisi-badge">0</span>)
+                    </span>
+                    <button onclick="fetchRevisiSheetData(true)" class="text-[10px] bg-rose-50 hover:bg-rose-100 text-rose-700 px-2.5 py-1 rounded-lg font-bold flex items-center space-x-1 border border-rose-200">
+                        <i class="fa-solid fa-rotate"></i>
+                        <span>Muat Ulang List</span>
+                    </button>
+                </div>
+
+                <!-- Search Input for Revisi List -->
+                <div class="relative">
+                    <input type="text" id="input-revisi-list-search" oninput="renderRevisiDataList()" placeholder="Cari nama item, kode item, barcode..." class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-8 pr-3 py-2 text-xs font-semibold outline-none focus:ring-2 focus:ring-rose-500">
+                    <i class="fa-solid fa-magnifying-glass text-slate-400 absolute left-3 top-2.5 text-xs"></i>
+                </div>
+
+                <!-- Cards List of Revision Items -->
+                <div id="revisi-items-card-list" class="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
+                    <div class="py-6 text-center text-slate-400 text-xs">
+                        Memuat data dari Sheet Revisi SO...
+                    </div>
+                </div>
+            </section>
         </div>
 
         <!-- VIEW 2: HISTORI DATA SO -->
@@ -290,12 +405,48 @@
             <section class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-3.5 space-y-3">
                 <div class="flex items-center justify-between pb-2 border-b border-slate-100">
                     <span class="text-xs font-bold text-slate-800 flex items-center uppercase tracking-wide">
-                        <i class="fa-solid fa-list-check text-indigo-600 mr-1.5"></i> Daftar Hasil Stok Opname (<span id="count-so-badge">0</span>)
+                        <i class="fa-solid fa-clock-rotate-left text-indigo-600 mr-1.5"></i> Histori Hasil SO (<span id="count-so-badge">0</span>)
                     </span>
                     <button onclick="renderHistoryList()" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg font-bold flex items-center space-x-1">
                         <i class="fa-solid fa-rotate"></i>
                         <span>Refresh</span>
                     </button>
+                </div>
+
+                <!-- FILTER DAN PENCARIAN DATA SO -->
+                <div class="bg-slate-50 border border-slate-200/90 rounded-xl p-2.5 space-y-2">
+                    <div class="text-[10px] font-bold text-indigo-900 uppercase tracking-wider flex items-center justify-between">
+                        <span class="flex items-center gap-1">
+                            <i class="fa-solid fa-filter text-indigo-600"></i> Filter Histori SO
+                        </span>
+                        <button onclick="resetHistoryFilters()" class="text-[9px] text-indigo-600 hover:text-indigo-800 font-bold underline">
+                            Reset Filter
+                        </button>
+                    </div>
+
+                    <!-- Dropdowns Filter Petugas & Rak -->
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[9px] font-bold text-slate-500 uppercase mb-0.5">Petugas SO</label>
+                            <select id="so-filter-officer" onchange="renderHistoryList()" class="w-full bg-white border border-slate-200 rounded-lg p-1.5 text-[11px] font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="">-- Semua Petugas --</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[9px] font-bold text-slate-500 uppercase mb-0.5">Rak / Lokasi</label>
+                            <select id="so-filter-rack" onchange="renderHistoryList()" class="w-full bg-white border border-slate-200 rounded-lg p-1.5 text-[11px] font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="">-- Semua Rak --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Search Input for Product / Code -->
+                    <div>
+                        <div class="relative">
+                            <input type="text" id="so-filter-search" oninput="renderHistoryList()" placeholder="Cari nama barang, SKU, barcode..." class="w-full bg-white border border-slate-200 rounded-lg pl-8 pr-2.5 py-1.5 text-xs font-medium text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500">
+                            <i class="fa-solid fa-magnifying-glass text-slate-400 absolute left-2.5 top-2.5 text-xs"></i>
+                        </div>
+                    </div>
                 </div>
 
                 <div id="sync-queue-banner" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-2.5 flex items-center justify-between text-xs">
@@ -308,21 +459,6 @@
                     </div>
                     <button onclick="resyncPendingToGoogleSheets()" class="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-[10px] shadow-sm btn-touch flex items-center space-x-1">
                         <i class="fa-solid fa-rotate mr-0.5"></i> Resync Now
-                    </button>
-                </div>
-
-                <!-- Tombol Sync Supabase ke Google Sheet -->
-                <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-2.5 flex justify-between items-center text-xs">
-                    <div class="flex items-center space-x-2 text-indigo-950">
-                        <i class="fa-solid fa-database text-emerald-600 text-base"></i>
-                        <div>
-                            <div class="font-black text-[11px]">Sync Database Supabase ➔ Sheet Hasil SO</div>
-                            <div class="text-[9px] text-indigo-700">Kirim ulang seluruh data SO dari Supabase ke Sheet Hasil SO</div>
-                        </div>
-                    </div>
-                    <button onclick="syncSupabaseToGoogleSheets()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-extrabold rounded-xl text-[10px] shadow-sm btn-touch flex items-center space-x-1 shrink-0">
-                        <i class="fa-solid fa-arrows-rotate"></i>
-                        <span>Sync ke Sheet</span>
                     </button>
                 </div>
 
@@ -480,12 +616,6 @@
                         <label class="block font-bold text-[10px] text-emerald-800 mb-0.5">Supabase Anon Key</label>
                         <input type="password" id="cfg-supabase-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5..." class="w-full bg-white border border-emerald-300 rounded-lg p-2 font-mono text-[10px] text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500">
                     </div>
-                    <div class="flex justify-between items-center pt-1 border-t border-emerald-200/60">
-                        <span class="text-[10px] text-emerald-700">Simpan hasil opname ke DB Supabase</span>
-                        <button onclick="openSqlHelpModal()" class="text-[10px] text-indigo-700 font-bold underline">
-                            Skema SQL Table
-                        </button>
-                    </div>
                 </div>
 
                 <!-- GOOGLE SHEETS CONFIGURATION -->
@@ -499,7 +629,7 @@
                     
                     <div class="pt-1">
                         <label class="block font-bold text-slate-800 text-[10px] flex items-center mb-0.5">
-                            <i class="fa-solid fa-paper-plane text-emerald-600 mr-1"></i> Webhook Auto-Sync (Sheet Hasil SO)
+                            <i class="fa-solid fa-paper-plane text-emerald-600 mr-1"></i> Webhook Auto-Sync (Sheet Hasil SO &amp; Revisi SO)
                         </label>
                         <input type="text" id="cfg-webhook-url" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-white border border-slate-300 rounded-lg p-2 font-mono text-[10px] outline-none focus:ring-2 focus:ring-emerald-500">
                     </div>
@@ -524,72 +654,6 @@
                     <i class="fa-solid fa-cloud-arrow-down"></i>
                     <span>Simpan &amp; Connect</span>
                 </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL SQL SCHEMA SETUP -->
-    <div id="modal-sql-setup" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden">
-        <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-150 flex flex-col max-h-[85vh]">
-            <div class="bg-slate-900 px-4 py-3 text-white flex justify-between items-center">
-                <h3 class="font-bold text-sm flex items-center">
-                    <i class="fa-solid fa-code text-emerald-400 mr-2"></i> Skema Tabel SQL Supabase
-                </h3>
-                <button onclick="closeSqlHelpModal()" class="text-slate-400 hover:text-white p-1">
-                    <i class="fa-solid fa-xmark text-lg"></i>
-                </button>
-            </div>
-
-            <div class="p-4 space-y-3 overflow-y-auto text-xs flex-1">
-                <p class="text-[11px] text-slate-600">
-                    Jalankan script SQL ini di **SQL Editor** Supabase Anda untuk membuat tabel yang siap menampung 70.000 SKU &amp; hasil Stock Opname:
-                </p>
-
-                <div class="relative bg-slate-950 text-slate-100 p-3 rounded-xl font-mono text-[10px] leading-relaxed overflow-x-auto border border-slate-800">
-                    <button onclick="copySqlCode()" class="absolute top-2 right-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-2 py-1 rounded text-[9px] shadow-sm flex items-center space-x-1">
-                        <i class="fa-solid fa-copy"></i>
-                        <span id="btn-copy-sql-txt">Salin SQL</span>
-                    </button>
-                    <pre id="sql-code-block" class="whitespace-pre-wrap">
--- 1. Tabel Master Item Produk (Di-index untuk 70k SKU)
-CREATE TABLE IF NOT EXISTS public.products (
-    id BIGSERIAL PRIMARY KEY,
-    kode_stock VARCHAR(100) UNIQUE NOT NULL,
-    original_code VARCHAR(100),
-    nama_barang TEXT,
-    family VARCHAR(100),
-    qty_akhir NUMERIC DEFAULT 0,
-    harga_beli NUMERIC DEFAULT 0,
-    harga_cash NUMERIC DEFAULT 0,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_products_kode_stock ON public.products(kode_stock);
-CREATE INDEX IF NOT EXISTS idx_products_original_code ON public.products(original_code);
-
--- 2. Tabel Hasil Stok Opname
-CREATE TABLE IF NOT EXISTS public.stock_opname_logs (
-    id VARCHAR(100) PRIMARY KEY,
-    timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    petugas VARCHAR(150),
-    peran VARCHAR(50),
-    rak VARCHAR(100),
-    kode_stock VARCHAR(100),
-    original_code VARCHAR(100),
-    nama_barang TEXT,
-    family VARCHAR(100),
-    qty_fisik NUMERIC DEFAULT 0
-);
-
--- 3. Matikan Row Level Security (RLS) untuk kemudahan akses API anon
-ALTER TABLE public.products DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.stock_opname_logs DISABLE ROW LEVEL SECURITY;
-                    </pre>
-                </div>
-            </div>
-
-            <div class="bg-slate-50 px-4 py-2.5 border-t border-slate-200 flex justify-end">
-                <button onclick="closeSqlHelpModal()" class="px-4 py-2 bg-slate-800 text-white text-xs font-bold rounded-xl hover:bg-slate-900 btn-touch">Tutup</button>
             </div>
         </div>
     </div>
@@ -662,7 +726,7 @@ ALTER TABLE public.stock_opname_logs DISABLE ROW LEVEL SECURITY;
 
             <div class="p-4 space-y-3 overflow-y-auto text-xs flex-1">
                 <p class="text-[11px] text-slate-600">
-                    Pasang kode script ini di Google Spreadsheet Anda agar setiap hasil scan Stok Opname otomatis tercatat di Sheet **Hasil SO**:
+                    Pasang kode script ini di Google Spreadsheet Anda agar pencatatan **Hasil SO** dan update **Revisi SO** berjalan otomatis:
                 </p>
 
                 <div class="relative bg-slate-950 text-slate-100 p-3 rounded-xl font-mono text-[10px] leading-relaxed overflow-x-auto border border-slate-800">
@@ -673,7 +737,7 @@ ALTER TABLE public.stock_opname_logs DISABLE ROW LEVEL SECURITY;
                     <pre id="appscript-code-block" class="whitespace-pre-wrap">
 function doPost(e) {
   var lock = LockService.getScriptLock();
-  var success = lock.tryLock(15000); // Wait max 15s
+  var success = lock.tryLock(15000);
 
   if (!success) {
     return ContentService.createTextOutput(JSON.stringify({"result": "error", "message": "Lock timeout"}))
@@ -682,13 +746,6 @@ function doPost(e) {
 
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheetSO = ss.getSheetByName("Hasil SO");
-    if (!sheetSO) {
-      sheetSO = ss.insertSheet("Hasil SO");
-      sheetSO.appendRow(["ID SO", "Time", "Petugas", "peran Petugas", "Rak", "Kode Item", "Kode Original", "Nama Produk", "Family", "qty"]);
-      SpreadsheetApp.flush();
-    }
-
     var contents = (e && e.postData && e.postData.contents) ? e.postData.contents : null;
     if (!contents) {
       return ContentService.createTextOutput(JSON.stringify({"result": "error", "message": "No payload"}))
@@ -697,13 +754,50 @@ function doPost(e) {
 
     var data = JSON.parse(contents);
     var record = data.record ? data.record : data;
-    
+
+    // 1. UPDATE KHUSUS MODE REVISI SO (HANYA UPDATE KOLOM G / QTY REVISI DI SHEET 'Revisi SO')
+    if (data.action === "update_revisi" || record.action === "update_revisi" || data.qty_revisi !== undefined || record.qty_revisi !== undefined) {
+      var sheetRevisi = ss.getSheetByName("Revisi SO");
+      if (!sheetRevisi) {
+        return ContentService.createTextOutput(JSON.stringify({"result": "error", "message": "Sheet 'Revisi SO' tidak ditemukan"}))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+
+      var kodeItem = String(record.kode_stock || record.kode_item || data.kode_stock || data.kode_item || '').replace(/^'/, '').trim();
+      if (!kodeItem) {
+        return ContentService.createTextOutput(JSON.stringify({"result": "error", "message": "Kode Item kosong"}))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+
+      var finder = sheetRevisi.getRange("A:A").createTextFinder(kodeItem).matchEntireCell(true);
+      var cell = finder.findNext();
+
+      if (cell) {
+        var row = cell.getRow();
+        var qtyRev = record.qty_revisi !== undefined ? record.qty_revisi : (data.qty_revisi !== undefined ? data.qty_revisi : record.qty);
+        sheetRevisi.getRange(row, 7).setValue(qtyRev); // Tulis HANYA ke Kolom G (QTY Revisi)
+        SpreadsheetApp.flush();
+        return ContentService.createTextOutput(JSON.stringify({"result": "success", "action": "revisi_updated", "row": row, "qty_revisi": qtyRev}))
+          .setMimeType(ContentService.MimeType.JSON);
+      } else {
+        return ContentService.createTextOutput(JSON.stringify({"result": "not_found", "message": "Kode Item " + kodeItem + " tidak ditemukan di Sheet Revisi SO"}))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+
+    // 2. HANYA UNTUK STOCK OPNAME FISIK BIASA (SHEET HASIL SO)
+    var sheetSO = ss.getSheetByName("Hasil SO");
+    if (!sheetSO) {
+      sheetSO = ss.insertSheet("Hasil SO");
+      sheetSO.appendRow(["ID SO", "Time", "Petugas", "peran Petugas", "Rak", "Kode Item", "Kode Original", "Nama Produk", "Family", "qty"]);
+      SpreadsheetApp.flush();
+    }
+
     var id = "";
     if (record.id !== undefined && record.id !== null) {
       id = String(record.id).replace(/^'/, '').trim();
     }
 
-    // Deduplikasi berbasis ID SO menggunakan TextFinder di Kolom A
     if (id !== "") {
       var finder = sheetSO.getRange("A:A").createTextFinder(id).matchEntireCell(true);
       var matches = finder.findAll();
@@ -728,10 +822,11 @@ function doPost(e) {
       qtyVal
     ]);
 
-    SpreadsheetApp.flush(); // Tulis langsung ke sheet sebelum lock dilepas
+    SpreadsheetApp.flush();
 
     return ContentService.createTextOutput(JSON.stringify({"result": "success", "id": id}))
       .setMimeType(ContentService.MimeType.JSON);
+
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({"result": "error", "message": err.toString()}))
       .setMimeType(ContentService.MimeType.JSON);
@@ -759,14 +854,20 @@ function doPost(e) {
 
         let supabaseClient = null;
         let autoSyncTimer = null;
-        let isSavingOpname = false; // FLAG MENCEGAH DOUBLE CLICK
+        let isSavingOpname = false;
+
+        // MODE OPERASIONAL: "SO" (Default) ATAU "REVISI"
+        let appOperationMode = "SO"; 
 
         // MASTER MEMORY DATA
         let MASTER_PRODUCTS = []; 
+        let REVISI_PRODUCTS = []; // DATA KHUSUS DARI SHEET "Revisi SO"
         let OFFICER_LIST = [];    
 
         let isSessionLocked = false;
         let currentProduct = null;
+        let currentRevisiItem = null;
+
         let html5QrCode = null;
         let isScannerActive = false;
 
@@ -779,6 +880,7 @@ function doPost(e) {
             loadConfigFields();
             updateIndicators();
             fetchMasterData();
+            fetchRevisiSheetData(); // Memuat data awal dari tab Revisi SO
             renderHistoryList();
             updatePendingSyncBanner();
             renderAdminDashboard();
@@ -815,6 +917,39 @@ function doPost(e) {
                 return true;
             } catch (e) {
                 return false;
+            }
+        }
+
+        function setAppOperationMode(mode) {
+            appOperationMode = mode;
+
+            const btnSO = document.getElementById('mode-btn-so');
+            const btnRevisi = document.getElementById('mode-btn-revisi');
+            const sessionBox = document.getElementById('section-session-box');
+            const scanTitle = document.getElementById('scan-box-title');
+            const revisiListSec = document.getElementById('section-revisi-list-container');
+
+            resetProductSelection();
+            resetRevisiSelection();
+
+            if (mode === 'SO') {
+                if (btnSO) btnSO.className = "py-2 rounded-xl bg-indigo-600 text-white shadow-sm flex items-center justify-center space-x-1.5 transition";
+                if (btnRevisi) btnRevisi.className = "py-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-rose-50 hover:text-rose-700 flex items-center justify-center space-x-1.5 transition";
+                if (sessionBox) sessionBox.classList.remove('hidden');
+                if (scanTitle) scanTitle.innerHTML = `<i class="fa-solid fa-barcode text-indigo-600 mr-1.5"></i> Scan / Ketik Kode Stock`;
+                if (revisiListSec) revisiListSec.classList.add('hidden');
+            } else {
+                if (btnSO) btnSO.className = "py-2 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center space-x-1.5 transition";
+                if (btnRevisi) btnRevisi.className = "py-2 rounded-xl bg-rose-600 text-white shadow-sm flex items-center justify-center space-x-1.5 transition";
+                if (sessionBox) sessionBox.classList.remove('hidden'); // Sesi Petugas & Rak tetap tampil di Mode Revisi
+                if (scanTitle) scanTitle.innerHTML = `<i class="fa-solid fa-pen-to-square text-rose-600 mr-1.5"></i> Scan / Cari Item REVISI SO`;
+                if (revisiListSec) revisiListSec.classList.remove('hidden');
+
+                if (REVISI_PRODUCTS.length === 0) {
+                    fetchRevisiSheetData();
+                } else {
+                    renderRevisiDataList();
+                }
             }
         }
 
@@ -870,169 +1005,6 @@ function doPost(e) {
                 if (whIndicator) whIndicator.className = "cursor-pointer px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/30 text-amber-200 border border-amber-400/30 flex items-center space-x-1";
                 if (autoBadge) autoBadge.classList.add('hidden');
             }
-        }
-
-        function renderAdminDashboard() {
-            const scannedCount = localHistorySO.length;
-            const totalMaster = MASTER_PRODUCTS.length || 70000;
-            const progressPercent = Math.min(100, ((scannedCount / totalMaster) * 100)).toFixed(1);
-
-            const elScanned = document.getElementById('adm-scanned-sku');
-            const elTotalMaster = document.getElementById('adm-total-master');
-            const elProgressBar = document.getElementById('adm-progress-bar');
-
-            if (elScanned) elScanned.innerText = scannedCount.toLocaleString('id-ID');
-            if (elTotalMaster) elTotalMaster.innerText = `/ ${totalMaster.toLocaleString('id-ID')} SKU`;
-            if (elProgressBar) elProgressBar.style.width = `${progressPercent}%`;
-
-            const totalQtyFisik = localHistorySO.reduce((a, b) => a + (parseFloat(b.qty_fisik !== undefined ? b.qty_fisik : b.qty) || 0), 0);
-
-            const elQtyFisik = document.getElementById('adm-total-qty-fisik');
-            if (elQtyFisik) elQtyFisik.innerText = totalQtyFisik.toLocaleString('id-ID');
-
-            const filterOfficerSelect = document.getElementById('adm-filter-officer');
-            if (filterOfficerSelect) {
-                const currentVal = filterOfficerSelect.value;
-                const officers = Array.from(new Set(localHistorySO.map(i => i.petugas))).filter(Boolean);
-                filterOfficerSelect.innerHTML = `<option value="">-- Semua Petugas --</option>`;
-                officers.forEach(o => {
-                    const opt = document.createElement('option');
-                    opt.value = o;
-                    opt.innerText = o;
-                    if (o === currentVal) opt.selected = true;
-                    filterOfficerSelect.appendChild(opt);
-                });
-            }
-
-            const filterOfficerVal = filterOfficerSelect ? filterOfficerSelect.value : '';
-
-            let filteredList = localHistorySO.filter(item => {
-                if (filterOfficerVal && item.petugas !== filterOfficerVal) return false;
-                return true;
-            });
-
-            const auditContainer = document.getElementById('adm-audit-list');
-            if (auditContainer) {
-                if (filteredList.length === 0) {
-                    auditContainer.innerHTML = `<div class="py-6 text-center text-slate-400 text-xs">Tidak ada data opname yang sesuai filter.</div>`;
-                } else {
-                    auditContainer.innerHTML = filteredList.map(item => createHistoryCardHTML(item)).join('');
-                }
-            }
-
-            const rackCountEl = document.getElementById('adm-rack-count');
-            const racksContainer = document.getElementById('adm-completed-racks-list');
-            if (rackCountEl) rackCountEl.innerText = completedRacks.length;
-
-            if (racksContainer) {
-                if (completedRacks.length === 0) {
-                    racksContainer.innerHTML = `<div class="text-[11px] text-slate-400 italic text-center py-2">Belum ada rak yang diselesaikan.</div>`;
-                } else {
-                    racksContainer.innerHTML = completedRacks.map(r => `
-                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs flex justify-between items-center">
-                            <div>
-                                <div class="font-extrabold text-indigo-900">${r.rak}</div>
-                                <div class="text-[10px] text-slate-500">${r.petugas} • ${new Date(r.completed_at).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})}</div>
-                            </div>
-                            <div class="text-right">
-                                <div class="font-black text-emerald-700">${r.total_qty} Unit</div>
-                                <div class="text-[9px] text-slate-400">${r.total_sku} SKU</div>
-                            </div>
-                        </div>
-                    `).join('');
-                }
-            }
-        }
-
-        function switchMainView(view) {
-            const viewScan = document.getElementById('view-scan-so');
-            const viewData = document.getElementById('view-data-so');
-            const viewAdmin = document.getElementById('view-admin-dashboard');
-
-            const navScan = document.getElementById('nav-btn-scan');
-            const navData = document.getElementById('nav-btn-data');
-            const navAdmin = document.getElementById('nav-btn-admin');
-
-            if (viewScan) viewScan.classList.add('hidden');
-            if (viewData) viewData.classList.add('hidden');
-            if (viewAdmin) viewAdmin.classList.add('hidden');
-
-            const inactiveClass = "py-2 rounded-xl text-indigo-300 hover:text-white hover:bg-indigo-900 flex flex-col items-center justify-center space-y-0.5 transition";
-            const activeClass = "py-2 rounded-xl text-white bg-indigo-600 shadow-sm flex flex-col items-center justify-center space-y-0.5 transition";
-
-            if (navScan) navScan.className = inactiveClass;
-            if (navData) navData.className = inactiveClass;
-            if (navAdmin) navAdmin.className = inactiveClass;
-
-            if (view === 'scan') {
-                if (viewScan) viewScan.classList.remove('hidden');
-                if (navScan) navScan.className = activeClass;
-            } else if (view === 'data') {
-                if (viewData) viewData.classList.remove('hidden');
-                if (navData) navData.className = activeClass;
-                renderHistoryList();
-            } else if (view === 'admin') {
-                if (viewAdmin) viewAdmin.classList.remove('hidden');
-                if (navAdmin) navAdmin.className = activeClass;
-                renderAdminDashboard();
-            }
-        }
-
-        function playBeepSound(freq = 1000, duration = 100) {
-            try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start();
-                osc.stop(audioCtx.currentTime + (duration / 1000));
-            } catch (e) {}
-        }
-
-        function triggerMobileHaptic(pattern = [50]) {
-            if (navigator.vibrate) {
-                try { navigator.vibrate(pattern); } catch(e) {}
-            }
-        }
-
-        function showToast(message, type = 'info') {
-            const container = document.getElementById('toast-container');
-            if (!container) return;
-
-            const toast = document.createElement('div');
-            let bgClass = 'bg-slate-800 text-white';
-            let icon = 'fa-circle-info';
-
-            if (type === 'success') {
-                bgClass = 'bg-emerald-600 text-white';
-                icon = 'fa-circle-check';
-            } else if (type === 'error') {
-                bgClass = 'bg-rose-600 text-white';
-                icon = 'fa-circle-exclamation';
-            } else if (type === 'amber') {
-                bgClass = 'bg-amber-600 text-white';
-                icon = 'fa-triangle-exclamation';
-            }
-
-            toast.className = `${bgClass} p-3 rounded-xl shadow-xl text-xs font-bold flex items-center justify-between transition-all duration-200 animate-in fade-in slide-in-from-top-2 pointer-events-auto`;
-            toast.innerHTML = `
-                <div class="flex items-center space-x-2">
-                    <i class="fa-solid ${icon} text-sm"></i>
-                    <span>${message}</span>
-                </div>
-                <button onclick="this.parentElement.remove()" class="ml-2 text-white/80 hover:text-white">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            `;
-
-            container.appendChild(toast);
-            setTimeout(() => {
-                if (toast && toast.parentElement) toast.remove();
-            }, 3500);
         }
 
         function extractSpreadsheetId(url) {
@@ -1174,6 +1146,117 @@ function doPost(e) {
             return allRows;
         }
 
+        async function fetchRevisiSheetData(userRequested = false) {
+            const sheetId = extractSpreadsheetId(SPREADSHEET_URL);
+            if (!sheetId) return;
+
+            try {
+                if (userRequested) showToast("Memuat ulang data Sheet 'Revisi SO'...", "info");
+                const revisiData = await fetchGSheetPageJSONP(sheetId, "Revisi SO", 0, 5000);
+                if (revisiData && revisiData.length > 0) {
+                    REVISI_PRODUCTS = revisiData;
+                    renderRevisiDataList();
+                    if (userRequested) showToast(`Berhasil memuat ${REVISI_PRODUCTS.length} item Revisi SO!`, "success");
+                }
+            } catch (e) {
+                console.warn("Gagal memuat Sheet Revisi SO:", e);
+                if (userRequested) showToast("Gagal membaca tab 'Revisi SO' dari Spreadsheet", "error");
+            }
+        }
+
+        function renderRevisiDataList() {
+            const container = document.getElementById('revisi-items-card-list');
+            const badgeCount = document.getElementById('count-revisi-badge');
+            const searchVal = document.getElementById('input-revisi-list-search') ? document.getElementById('input-revisi-list-search').value.trim().toLowerCase() : '';
+
+            if (!container) return;
+
+            if (REVISI_PRODUCTS.length === 0) {
+                container.innerHTML = `
+                    <div class="py-8 text-center text-slate-400 text-xs space-y-1">
+                        <i class="fa-solid fa-folder-open text-2xl text-slate-300"></i>
+                        <p>Tidak ada data di sheet 'Revisi SO' atau belum dimuat.</p>
+                    </div>
+                `;
+                if (badgeCount) badgeCount.innerText = '0';
+                return;
+            }
+
+            let filteredList = REVISI_PRODUCTS.filter(item => {
+                if (!searchVal) return true;
+                const kItem = String(getColVal(item, ['kode item', 'kode_item', 'kode stock', 'kode'])).toLowerCase();
+                const origCode = String(getColVal(item, ['kode original', 'original_code', 'kode_original', 'barcode'])).toLowerCase();
+                const name = String(getColVal(item, ['nama item', 'nama_item', 'nama barang', 'nama'])).toLowerCase();
+
+                return kItem.includes(searchVal) || origCode.includes(searchVal) || name.includes(searchVal);
+            });
+
+            if (badgeCount) badgeCount.innerText = `${filteredList.length} / ${REVISI_PRODUCTS.length}`;
+
+            if (filteredList.length === 0) {
+                container.innerHTML = `
+                    <div class="py-6 text-center text-slate-400 text-xs">
+                        Tidak ada item revisi yang cocok dengan pencarian.
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filteredList.map(item => {
+                const kItem = getColVal(item, ['kode item', 'kode_item', 'kode stock', 'kode']);
+                const origCode = getColVal(item, ['kode original', 'original_code', 'kode_original', 'barcode']) || '-';
+                const nameItem = getColVal(item, ['nama item', 'nama_item', 'nama barang', 'nama']) || 'Item Revisi';
+                const qtySo = parseFloat(getColVal(item, ['qty so', 'qty_so'])) || 0;
+                const qtyOnhand = parseFloat(getColVal(item, ['qty onhand', 'qty_onhand', 'qty on hand'])) || 0;
+                const selisih = parseFloat(getColVal(item, ['selisih'])) || 0;
+                const qtyRevisi = parseFloat(getColVal(item, ['qty revisi', 'qty_revisi'])) || 0;
+
+                const hasRevisi = qtyRevisi > 0 || String(getColVal(item, ['qty revisi', 'qty_revisi'])).trim() !== '';
+
+                return `
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-2 text-xs">
+                        <div class="flex justify-between items-start">
+                            <div class="space-y-0.5">
+                                <div class="flex items-center space-x-1.5 flex-wrap">
+                                    <span class="bg-rose-600 text-white font-mono font-bold px-1.5 py-0.5 rounded text-[10px]">${kItem}</span>
+                                    <span class="text-slate-500 font-mono text-[10px] font-semibold">${origCode}</span>
+                                    ${hasRevisi ? '<span class="bg-emerald-100 text-emerald-800 font-bold text-[9px] px-1.5 py-0.5 rounded"><i class="fa-solid fa-check"></i> Sudah Direvisi</span>' : '<span class="bg-rose-100 text-rose-800 font-bold text-[9px] px-1.5 py-0.5 rounded">Belum Direvisi</span>'}
+                                </div>
+                                <div class="font-extrabold text-slate-900 leading-snug pt-1">${nameItem}</div>
+                            </div>
+                            <button onclick="selectRevisiItemFromList('${kItem}')" class="px-2.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-bold text-[11px] shadow-sm btn-touch flex items-center space-x-1 shrink-0">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                                <span>Edit Qty</span>
+                            </button>
+                        </div>
+
+                        <div class="grid grid-cols-4 gap-1 text-center text-[10px] pt-1 border-t border-slate-200">
+                            <div class="bg-amber-50 border border-amber-200/80 rounded-md p-1">
+                                <div class="text-[8px] font-bold text-amber-800 uppercase">Qty SO</div>
+                                <div class="font-black text-amber-950">${qtySo}</div>
+                            </div>
+                            <div class="bg-amber-50 border border-amber-200/80 rounded-md p-1">
+                                <div class="text-[8px] font-bold text-amber-800 uppercase">Onhand</div>
+                                <div class="font-black text-amber-950">${qtyOnhand}</div>
+                            </div>
+                            <div class="bg-amber-50 border border-amber-200/80 rounded-md p-1">
+                                <div class="text-[8px] font-bold text-amber-800 uppercase">Selisih</div>
+                                <div class="font-black text-rose-700">${selisih}</div>
+                            </div>
+                            <div class="bg-rose-100 border border-rose-300 rounded-md p-1">
+                                <div class="text-[8px] font-black text-rose-900 uppercase">QTY REVISI</div>
+                                <div class="font-black text-rose-950 text-xs">${hasRevisi ? qtyRevisi : '-'}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function selectRevisiItemFromList(kodeItem) {
+            searchInRevisiSheet(String(kodeItem).toLowerCase());
+        }
+
         async function fetchMasterData() {
             const sheetId = extractSpreadsheetId(SPREADSHEET_URL);
             const iconSync = document.getElementById('icon-sync-spin');
@@ -1224,23 +1307,6 @@ function doPost(e) {
                     }
                 } catch (offErr) {}
 
-                if (supabaseClient) {
-                    try {
-                        const { data: soLogs } = await supabaseClient
-                            .from('stock_opname_logs')
-                            .select('*')
-                            .order('timestamp', { ascending: false })
-                            .limit(500);
-
-                        if (soLogs && soLogs.length > 0) {
-                            localHistorySO = soLogs;
-                            localStorage.setItem('so_local_history', JSON.stringify(localHistorySO));
-                            renderHistoryList();
-                            renderAdminDashboard();
-                        }
-                    } catch (spSoErr) {}
-                }
-
                 if (timeBadge) timeBadge.innerText = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
                 showToast(`GSheet Sync Sukses: ${MASTER_PRODUCTS.length.toLocaleString('id-ID')} SKU dimuat`, "success");
 
@@ -1249,83 +1315,6 @@ function doPost(e) {
                 showToast("Gagal membaca Spreadsheet/Database: " + err.message, "error");
             } finally {
                 if (iconSync) iconSync.classList.remove('fa-spin');
-            }
-        }
-
-        async function syncGSheetProductsToSupabase() {
-            if (!supabaseClient) {
-                showToast("Isi URL & Anon Key Supabase di menu Settings terlebih dahulu!", "error");
-                return;
-            }
-
-            const sheetId = extractSpreadsheetId(SPREADSHEET_URL);
-            if (!sheetId) {
-                showToast("Link Google Sheets tidak valid!", "error");
-                return;
-            }
-
-            const progressModal = document.getElementById('modal-sync-progress');
-            const progressTitle = document.getElementById('sync-progress-title');
-            const progressSub = document.getElementById('sync-progress-sub');
-            const progressCounts = document.getElementById('sync-progress-counts');
-            const progressPercent = document.getElementById('sync-progress-percent');
-            const progressBarFill = document.getElementById('sync-progress-bar-fill');
-
-            if (progressModal) progressModal.classList.remove('hidden');
-            if (progressTitle) progressTitle.innerText = "Membaca 70k SKU dari GSheet...";
-            if (progressSub) progressSub.innerText = "Mengambil data bertahap (Pagination)...";
-
-            try {
-                let masterData = await fetchGSheetAllRows(sheetId, "Master Item", (count) => {
-                    if (progressCounts) progressCounts.innerText = `${count.toLocaleString('id-ID')} SKU Terbaca`;
-                });
-
-                if (!masterData || masterData.length === 0) {
-                    if (progressModal) progressModal.classList.add('hidden');
-                    showToast("Master Item Google Sheet kosong!", "error");
-                    return;
-                }
-
-                const totalItems = masterData.length;
-                if (progressTitle) progressTitle.innerText = "Mengunggah SKU ke Supabase DB...";
-                if (progressSub) progressSub.innerText = `Menyimpan ${totalItems.toLocaleString('id-ID')} SKU (Batch 500)...`;
-
-                const batchSize = 500;
-                let inserted = 0;
-
-                for (let i = 0; i < totalItems; i += batchSize) {
-                    const chunk = masterData.slice(i, i + batchSize).map(p => ({
-                        kode_stock: getColVal(p, ['kode stock', 'kode_stock', 'kodestock', 'sku', 'kode']),
-                        original_code: getColVal(p, ['original code', 'original_code', 'originalcode', 'barcode']) || null,
-                        nama_barang: getColVal(p, ['nama barang', 'nama_barang', 'namabarang', 'nama']) || 'Barang',
-                        family: getColVal(p, ['family', 'kategori', 'fam']) || '-',
-                        qty_akhir: parseFloat(getColVal(p, ['qty akhir', 'qty_akhir', 'qty system', 'stok'])) || 0,
-                        harga_beli: parseFloat(getColVal(p, ['harga beli akhir', 'harga_beli_akhir', 'harga beli'])) || 0,
-                        harga_cash: parseFloat(getColVal(p, ['harga cash', 'harga_cash', 'hargacash', 'harga jual'])) || 0
-                    })).filter(x => x.kode_stock);
-
-                    if (chunk.length > 0) {
-                        const { error } = await supabaseClient.from('products').upsert(chunk, { onConflict: 'kode_stock' });
-                        if (error) {
-                            console.error("Batch error pada indeks", i, error);
-                        } else {
-                            inserted += chunk.length;
-                        }
-                    }
-
-                    const pct = Math.min(100, Math.round((inserted / totalItems) * 100));
-                    if (progressBarFill) progressBarFill.style.width = `${pct}%`;
-                    if (progressPercent) progressPercent.innerText = `${pct}%`;
-                    if (progressCounts) progressCounts.innerText = `${inserted.toLocaleString('id-ID')} / ${totalItems.toLocaleString('id-ID')} SKU`;
-                }
-
-                if (progressModal) progressModal.classList.add('hidden');
-                showToast(`✓ Selesai! Berhasil sinkronisasi ${inserted.toLocaleString('id-ID')} SKU ke Supabase DB!`, "success");
-                updateSkuHeaderCount(inserted);
-
-            } catch (e) {
-                if (progressModal) progressModal.classList.add('hidden');
-                showToast("Gagal sync ke Supabase: " + e.message, "error");
             }
         }
 
@@ -1356,14 +1345,6 @@ function doPost(e) {
             customOpt.value = "__CUSTOM__";
             customOpt.innerText = "+ Ketik Nama Lain...";
             selectOfficer.appendChild(customOpt);
-
-            if (savedOfficer && !Array.from(selectOfficer.options).some(o => o.value === savedOfficer)) {
-                const savedOpt = document.createElement('option');
-                savedOpt.value = savedOfficer;
-                savedOpt.innerText = savedOfficer + " (Terakhir)";
-                savedOpt.selected = true;
-                selectOfficer.insertBefore(savedOpt, customOpt);
-            }
         }
 
         function handleOfficerSelectChange() {
@@ -1483,6 +1464,13 @@ function doPost(e) {
                 return;
             }
 
+            // JIKA sedang dalam MODE REVISI SO
+            if (appOperationMode === "REVISI") {
+                await searchInRevisiSheet(queryLower);
+                return;
+            }
+
+            // JIKA sedang dalam MODE STOCK OPNAME BIASA
             let foundProduct = null;
 
             if (supabaseClient) {
@@ -1503,25 +1491,23 @@ function doPost(e) {
                             family: p.family || '-'
                         };
                     }
-                } catch (e) {
-                    console.warn("Supabase query error:", e);
-                }
+                } catch (e) {}
             }
 
             if (!foundProduct && MASTER_PRODUCTS.length > 0) {
                 const found = MASTER_PRODUCTS.find(p => {
-                    const kStock = String(getColVal(p, ['kode stock', 'kode_stock', 'kodestock', 'sku', 'kode'])).toLowerCase();
-                    const origCode = String(getColVal(p, ['original code', 'original_code', 'originalcode', 'barcode'])).toLowerCase();
-                    const name = String(getColVal(p, ['nama barang', 'nama_barang', 'namabarang', 'nama'])).toLowerCase();
+                    const kStock = String(getColVal(p, ['kode stock', 'kode_stock', 'kodestock', 'sku', 'kode', 'kode item'])).toLowerCase();
+                    const origCode = String(getColVal(p, ['original code', 'original_code', 'originalcode', 'barcode', 'kode original'])).toLowerCase();
+                    const name = String(getColVal(p, ['nama barang', 'nama_barang', 'namabarang', 'nama', 'nama item'])).toLowerCase();
 
                     return kStock === queryLower || origCode === queryLower || (queryLower.length >= 4 && name.includes(queryLower));
                 });
 
                 if (found) {
                     foundProduct = {
-                        kode_stock: getColVal(found, ['kode stock', 'kode_stock', 'kodestock', 'sku', 'kode']) || 'SKU-UNKNOWN',
-                        original_code: getColVal(found, ['original code', 'original_code', 'originalcode', 'barcode']) || '-',
-                        nama_barang: getColVal(found, ['nama barang', 'nama_barang', 'namabarang', 'nama']) || 'Tanpa Nama',
+                        kode_stock: getColVal(found, ['kode stock', 'kode_stock', 'kodestock', 'sku', 'kode', 'kode item']) || 'SKU-UNKNOWN',
+                        original_code: getColVal(found, ['original code', 'original_code', 'originalcode', 'barcode', 'kode original']) || '-',
+                        nama_barang: getColVal(found, ['nama barang', 'nama_barang', 'namabarang', 'nama', 'nama item']) || 'Tanpa Nama',
                         family: getColVal(found, ['family', 'kategori', 'fam']) || '-'
                     };
                 }
@@ -1535,7 +1521,42 @@ function doPost(e) {
             } else {
                 playBeepSound(300, 300);
                 triggerMobileHaptic([200, 100, 200]);
-                showToast(`Barang '${query}' tidak ditemukan di Database/GSheet!`, "error");
+                showToast(`Barang '${query}' tidak ditemukan di Master SKU!`, "error");
+            }
+        }
+
+        async function searchInRevisiSheet(queryLower) {
+            if (REVISI_PRODUCTS.length === 0) {
+                await fetchRevisiSheetData();
+            }
+
+            const found = REVISI_PRODUCTS.find(p => {
+                const kStock = String(getColVal(p, ['kode item', 'kode_item', 'kode stock', 'kode'])).toLowerCase();
+                const origCode = String(getColVal(p, ['kode original', 'original_code', 'kode_original', 'barcode'])).toLowerCase();
+                const name = String(getColVal(p, ['nama item', 'nama_item', 'nama barang', 'nama'])).toLowerCase();
+
+                return kStock === queryLower || origCode === queryLower || (queryLower.length >= 3 && name.includes(queryLower));
+            });
+
+            if (found) {
+                playBeepSound(1400, 100);
+                triggerMobileHaptic([50, 50]);
+
+                currentRevisiItem = {
+                    kode_item: getColVal(found, ['kode item', 'kode_item', 'kode stock', 'kode']),
+                    kode_original: getColVal(found, ['kode original', 'original_code', 'kode_original', 'barcode']) || '-',
+                    nama_item: getColVal(found, ['nama item', 'nama_item', 'nama barang', 'nama']) || 'Item Revisi',
+                    qty_so: parseFloat(getColVal(found, ['qty so', 'qty_so'])) || 0,
+                    qty_onhand: parseFloat(getColVal(found, ['qty onhand', 'qty_onhand', 'qty on hand'])) || 0,
+                    selisih: parseFloat(getColVal(found, ['selisih'])) || 0,
+                    qty_revisi: parseFloat(getColVal(found, ['qty revisi', 'qty_revisi'])) || 0
+                };
+
+                displayRevisiResult(currentRevisiItem);
+            } else {
+                playBeepSound(300, 300);
+                triggerMobileHaptic([200, 100, 200]);
+                showToast(`Kode/Barang '${queryLower}' tidak ada di Sheet 'Revisi SO'!`, "error");
             }
         }
 
@@ -1567,8 +1588,49 @@ function doPost(e) {
             }, 200);
         }
 
+        function displayRevisiResult(revItem) {
+            const secRev = document.getElementById('section-revisi-result');
+            const codeEl = document.getElementById('rev-product-code');
+            const origEl = document.getElementById('rev-product-orig');
+            const nameEl = document.getElementById('rev-product-name');
+            const qtySoEl = document.getElementById('rev-data-qty-so');
+            const qtyOnhandEl = document.getElementById('rev-data-qty-onhand');
+            const selisihEl = document.getElementById('rev-data-selisih');
+            const inputRevQty = document.getElementById('input-qty-revisi');
+
+            if (codeEl) codeEl.innerText = revItem.kode_item;
+            if (origEl) origEl.innerText = revItem.kode_original;
+            if (nameEl) nameEl.innerText = revItem.nama_item;
+            if (qtySoEl) qtySoEl.innerText = revItem.qty_so;
+            if (qtyOnhandEl) qtyOnhandEl.innerText = revItem.qty_onhand;
+            if (selisihEl) selisihEl.innerText = revItem.selisih;
+
+            if (inputRevQty) inputRevQty.value = revItem.qty_revisi > 0 ? revItem.qty_revisi : revItem.qty_so;
+
+            if (secRev) {
+                secRev.classList.remove('hidden');
+                secRev.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+
+            setTimeout(() => {
+                if (inputRevQty) {
+                    inputRevQty.focus();
+                    inputRevQty.select();
+                }
+            }, 200);
+        }
+
         function adjustQty(delta) {
             const inputQty = document.getElementById('input-qty');
+            if (!inputQty) return;
+            let currentVal = parseFloat(inputQty.value) || 0;
+            currentVal += delta;
+            if (currentVal < 0) currentVal = 0;
+            inputQty.value = currentVal;
+        }
+
+        function adjustQtyRevisi(delta) {
+            const inputQty = document.getElementById('input-qty-revisi');
             if (!inputQty) return;
             let currentVal = parseFloat(inputQty.value) || 0;
             currentVal += delta;
@@ -1582,6 +1644,18 @@ function doPost(e) {
             const inputBarcode = document.getElementById('input-barcode');
 
             if (sec) sec.classList.add('hidden');
+            if (inputBarcode) {
+                inputBarcode.value = '';
+                inputBarcode.focus();
+            }
+        }
+
+        function resetRevisiSelection() {
+            currentRevisiItem = null;
+            const secRev = document.getElementById('section-revisi-result');
+            const inputBarcode = document.getElementById('input-barcode');
+
+            if (secRev) secRev.classList.add('hidden');
             if (inputBarcode) {
                 inputBarcode.value = '';
                 inputBarcode.focus();
@@ -1651,7 +1725,6 @@ function doPost(e) {
         }
 
         async function saveStockOpname() {
-            // ANTI DOUBLE CLICK GUARD
             if (isSavingOpname) return;
             if (!currentProduct) {
                 showToast("Tidak ada produk yang dipilih!", "error");
@@ -1707,17 +1780,14 @@ function doPost(e) {
                             opnameRecord.synced_supabase = true;
                             isSupabaseOk = true;
                         }
-                    } catch (spErr) {
-                        console.warn("Supabase insert error:", spErr);
-                    }
+                    } catch (spErr) {}
                 }
 
-                // HANYA KIRIM LANGSUNG KE GSHEET WEBHOOK JIKA SUPABASE TIDAK AKTIF ATAU GAGAL
                 if (!isSupabaseOk) {
                     const isGSheetPushed = await postToWebhook(opnameRecord);
                     opnameRecord.synced_gsheet = isGSheetPushed;
                 } else {
-                    opnameRecord.synced_gsheet = true; // Ditangani secara otomatis oleh Supabase SQL Trigger
+                    opnameRecord.synced_gsheet = true;
                 }
 
                 localHistorySO.unshift(opnameRecord);
@@ -1726,15 +1796,7 @@ function doPost(e) {
                 playBeepSound(1500, 120);
                 triggerMobileHaptic([80, 80]);
 
-                let syncMsg = [];
-                if (opnameRecord.synced_supabase) syncMsg.push("Supabase DB ✓");
-                if (opnameRecord.synced_gsheet) syncMsg.push("Google Sheet ✓");
-
-                if (syncMsg.length > 0) {
-                    showToast(`✓ SO [${currentProduct.kode_stock}] tersimpan (${syncMsg.join(', ')})`, "success");
-                } else {
-                    showToast(`Tersimpan lokal di HP (Offline Mode).`, "info");
-                }
+                showToast(`✓ SO [${currentProduct.kode_stock}] tersimpan`, "success");
 
                 renderHistoryList();
                 updatePendingSyncBanner();
@@ -1744,6 +1806,56 @@ function doPost(e) {
                 if (btnSave) {
                     btnSave.disabled = false;
                     btnSave.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            }
+        }
+
+        async function saveRevisiSO() {
+            if (!currentRevisiItem) {
+                showToast("Pilih barang revisi terlebih dahulu!", "error");
+                return;
+            }
+
+            const inputRevQty = document.getElementById('input-qty-revisi');
+            const btnSaveRev = document.getElementById('btn-save-revisi');
+            const qtyRevisiVal = parseFloat(inputRevQty ? inputRevQty.value : 0) || 0;
+
+            if (btnSaveRev) {
+                btnSaveRev.disabled = true;
+                btnSaveRev.classList.add('opacity-50');
+            }
+
+            try {
+                const payload = {
+                    action: "update_revisi",
+                    kode_stock: currentRevisiItem.kode_item,
+                    kode_item: currentRevisiItem.kode_item,
+                    qty_revisi: qtyRevisiVal
+                };
+
+                const ok = await postToWebhook(payload);
+
+                if (ok) {
+                    playBeepSound(1600, 150);
+                    triggerMobileHaptic([100, 100]);
+                    showToast(`✓ QTY REVISI [${currentRevisiItem.kode_item}] diset ke ${qtyRevisiVal} di Sheet Revisi SO!`, "success");
+                    
+                    // Update memori lokal
+                    const targetLocal = REVISI_PRODUCTS.find(p => String(getColVal(p, ['kode item', 'kode_item', 'kode stock', 'kode'])).toLowerCase() === String(currentRevisiItem.kode_item).toLowerCase());
+                    if (targetLocal) {
+                        targetLocal['qty revisi'] = qtyRevisiVal;
+                        targetLocal['qty_revisi'] = qtyRevisiVal;
+                    }
+
+                    renderRevisiDataList();
+                    resetRevisiSelection();
+                } else {
+                    showToast("Gagal memperbarui QTY Revisi ke Google Sheet!", "error");
+                }
+            } finally {
+                if (btnSaveRev) {
+                    btnSaveRev.disabled = false;
+                    btnSaveRev.classList.remove('opacity-50');
                 }
             }
         }
@@ -1767,138 +1879,150 @@ function doPost(e) {
             }
         }
 
-        async function resyncPendingToGoogleSheets() {
-            const unSynced = localHistorySO.filter(item => !item.synced_gsheet || !item.synced_supabase);
-            if (unSynced.length === 0) {
-                showToast("Semua data sudah ter-sync!", "info");
-                return;
-            }
-
-            showToast(`Mengirim ${unSynced.length} item pending...`, "info");
-
-            for (let item of unSynced) {
-                if (WEBHOOK_URL && !item.synced_gsheet) {
-                    const ok = await postToWebhook(item);
-                    if (ok) item.synced_gsheet = true;
-                }
-                if (supabaseClient && !item.synced_supabase) {
-                    try {
-                        const { error } = await supabaseClient.from('stock_opname_logs').upsert([item]);
-                        if (!error) item.synced_supabase = true;
-                    } catch (e) {}
-                }
-            }
-
-            localStorage.setItem('so_local_history', JSON.stringify(localHistorySO));
-            renderHistoryList();
-            updatePendingSyncBanner();
-
-            showToast("Proses resync selesai!", "success");
-        }
-
-        async function syncSupabaseToGoogleSheets() {
-            if (!supabaseClient) {
-                showToast("Koneksi Supabase DB belum aktif!", "error");
-                return;
-            }
-
-            if (!WEBHOOK_URL || !WEBHOOK_URL.startsWith('http')) {
-                showToast("Isi URL Webhook Google Sheets di Settings terlebih dahulu!", "amber");
-                openConfigModal();
-                return;
-            }
-
-            showToast("Membaca seluruh data SO dari Supabase...", "info");
-
+        function playBeepSound(freq = 1000, duration = 100) {
             try {
-                const { data, error } = await supabaseClient
-                    .from('stock_opname_logs')
-                    .select('*')
-                    .order('timestamp', { ascending: false });
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + (duration / 1000));
+            } catch (e) {}
+        }
 
-                if (error) {
-                    showToast("Gagal mengambil data dari Supabase: " + error.message, "error");
-                    return;
-                }
-
-                if (!data || data.length === 0) {
-                    showToast("Tidak ada data Stock Opname di database Supabase.", "info");
-                    return;
-                }
-
-                showToast(`Mengirim ${data.length} data SO ke Sheet Hasil SO...`, "info");
-
-                let successCount = 0;
-                for (let row of data) {
-                    const ok = await postToWebhook(row);
-                    if (ok) {
-                        successCount++;
-                        row.synced_gsheet = true;
-                        try {
-                            await supabaseClient
-                                .from('stock_opname_logs')
-                                .update({ synced_gsheet: true })
-                                .eq('id', row.id);
-                        } catch (e) {}
-                    }
-                }
-
-                localHistorySO = data;
-                localStorage.setItem('so_local_history', JSON.stringify(localHistorySO));
-                renderHistoryList();
-                renderAdminDashboard();
-                updatePendingSyncBanner();
-
-                showToast(`✓ Berhasil sync ${successCount} dari ${data.length} item Supabase ke Sheet Hasil SO!`, "success");
-
-            } catch (err) {
-                console.error("Sync Supabase to GSheet error:", err);
-                showToast("Terjadi kesalahan saat sync: " + err.message, "error");
+        function triggerMobileHaptic(pattern = [50]) {
+            if (navigator.vibrate) {
+                try { navigator.vibrate(pattern); } catch(e) {}
             }
         }
 
-        function updatePendingSyncBanner() {
-            const banner = document.getElementById('sync-queue-banner');
-            const pendingCountEl = document.getElementById('pending-count');
-            if (!banner || !pendingCountEl) return;
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
 
-            const pending = localHistorySO.filter(item => !item.synced_gsheet && !item.synced_supabase).length;
-            pendingCountEl.innerText = pending;
+            const toast = document.createElement('div');
+            let bgClass = 'bg-slate-800 text-white';
+            let icon = 'fa-circle-info';
 
-            if (pending > 0) {
-                banner.classList.remove('hidden');
-            } else {
-                banner.classList.add('hidden');
+            if (type === 'success') {
+                bgClass = 'bg-emerald-600 text-white';
+                icon = 'fa-circle-check';
+            } else if (type === 'error') {
+                bgClass = 'bg-rose-600 text-white';
+                icon = 'fa-circle-exclamation';
             }
+
+            toast.className = `${bgClass} p-3 rounded-xl shadow-xl text-xs font-bold flex items-center justify-between transition-all duration-200 animate-in fade-in slide-in-from-top-2 pointer-events-auto`;
+            toast.innerHTML = `
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid ${icon} text-sm"></i>
+                    <span>${message}</span>
+                </div>
+                <button onclick="this.parentElement.remove()" class="ml-2 text-white/80 hover:text-white">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            `;
+
+            container.appendChild(toast);
+            setTimeout(() => {
+                if (toast && toast.parentElement) toast.remove();
+            }, 3500);
         }
 
         function renderHistoryList() {
             const containerSO = document.getElementById('mobile-history-container');
             const countBadgeSO = document.getElementById('count-so-badge');
 
-            if (countBadgeSO) countBadgeSO.innerText = localHistorySO.length;
+            populateHistoryFilters();
+
+            const filterOfficerVal = document.getElementById('so-filter-officer') ? document.getElementById('so-filter-officer').value : '';
+            const filterRackVal = document.getElementById('so-filter-rack') ? document.getElementById('so-filter-rack').value : '';
+            const filterSearchVal = document.getElementById('so-filter-search') ? document.getElementById('so-filter-search').value.trim().toLowerCase() : '';
+
+            let filteredList = localHistorySO.filter(item => {
+                if (filterOfficerVal && item.petugas !== filterOfficerVal) return false;
+                if (filterRackVal && item.rak !== filterRackVal) return false;
+                if (filterSearchVal) {
+                    const nameMatch = (item.nama_barang || '').toLowerCase().includes(filterSearchVal);
+                    const codeMatch = (item.kode_stock || '').toLowerCase().includes(filterSearchVal);
+                    const origMatch = (item.original_code || '').toLowerCase().includes(filterSearchVal);
+                    if (!nameMatch && !codeMatch && !origMatch) return false;
+                }
+                return true;
+            });
+
+            if (countBadgeSO) {
+                if (filteredList.length === localHistorySO.length) {
+                    countBadgeSO.innerText = localHistorySO.length;
+                } else {
+                    countBadgeSO.innerText = `${filteredList.length} dari ${localHistorySO.length}`;
+                }
+            }
 
             if (containerSO) {
-                if (localHistorySO.length === 0) {
+                if (filteredList.length === 0) {
                     containerSO.innerHTML = `
                         <div class="py-8 text-center text-slate-400 text-xs space-y-1">
-                            <i class="fa-solid fa-clipboard-list text-2xl text-slate-300"></i>
-                            <p>Belum ada data opname yang disimpan.</p>
+                            <i class="fa-solid fa-filter-circle-xmark text-2xl text-slate-300"></i>
+                            <p>Tidak ada data SO yang cocok dengan filter.</p>
                         </div>
                     `;
                 } else {
-                    containerSO.innerHTML = localHistorySO.map(item => createHistoryCardHTML(item)).join('');
+                    containerSO.innerHTML = filteredList.map(item => createHistoryCardHTML(item)).join('');
                 }
             }
+        }
+
+        function populateHistoryFilters() {
+            const filterOfficerSelect = document.getElementById('so-filter-officer');
+            const filterRackSelect = document.getElementById('so-filter-rack');
+
+            if (filterOfficerSelect) {
+                const currentVal = filterOfficerSelect.value;
+                const officers = Array.from(new Set(localHistorySO.map(i => i.petugas))).filter(Boolean).sort();
+                filterOfficerSelect.innerHTML = `<option value="">-- Semua Petugas --</option>`;
+                officers.forEach(o => {
+                    const opt = document.createElement('option');
+                    opt.value = o;
+                    opt.innerText = o;
+                    if (o === currentVal) opt.selected = true;
+                    filterOfficerSelect.appendChild(opt);
+                });
+            }
+
+            if (filterRackSelect) {
+                const currentVal = filterRackSelect.value;
+                const racks = Array.from(new Set(localHistorySO.map(i => i.rak))).filter(Boolean).sort();
+                filterRackSelect.innerHTML = `<option value="">-- Semua Rak --</option>`;
+                racks.forEach(r => {
+                    const opt = document.createElement('option');
+                    opt.value = r;
+                    opt.innerText = r;
+                    if (r === currentVal) opt.selected = true;
+                    filterRackSelect.appendChild(opt);
+                });
+            }
+        }
+
+        function resetHistoryFilters() {
+            const filterOfficerSelect = document.getElementById('so-filter-officer');
+            const filterRackSelect = document.getElementById('so-filter-rack');
+            const filterSearchInput = document.getElementById('so-filter-search');
+
+            if (filterOfficerSelect) filterOfficerSelect.value = '';
+            if (filterRackSelect) filterRackSelect.value = '';
+            if (filterSearchInput) filterSearchInput.value = '';
+
+            renderHistoryList();
         }
 
         function createHistoryCardHTML(item) {
             const timeStr = new Date(item.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
             const qtyVal = item.qty_fisik !== undefined ? item.qty_fisik : (item.qty !== undefined ? item.qty : 0);
-
-            const spBadge = item.synced_supabase
-                ? `<span class="bg-emerald-600 text-white text-[8px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5"><i class="fa-solid fa-database"></i> DB</span>`
-                : `<span class="bg-slate-300 text-slate-700 text-[8px] font-bold px-1.5 py-0.5 rounded">DB Off</span>`;
 
             const gsBadge = item.synced_gsheet
                 ? `<span class="bg-emerald-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5"><i class="fa-solid fa-sheet-plastic"></i> GSheet</span>`
@@ -1913,7 +2037,6 @@ function doPost(e) {
                             <span class="text-slate-400">(${item.peran || 'Checker'} • ${timeStr})</span>
                         </div>
                         <div class="flex items-center space-x-1">
-                            ${spBadge}
                             ${gsBadge}
                             <button onclick="deleteHistoryItem('${item.id}')" class="text-rose-500 hover:text-rose-700 p-1">
                                 <i class="fa-solid fa-trash"></i>
@@ -1947,102 +2070,57 @@ function doPost(e) {
             showToast("Item dihapus dari riwayat lokal", "info");
         }
 
-        function openCompleteRackModal() {
-            const officerName = getSelectedOfficerName();
-            const rackEl = document.getElementById('input-rack-name');
-            const rackName = rackEl ? rackEl.value.trim().toUpperCase() : '';
+        function switchMainView(view) {
+            const viewScan = document.getElementById('view-scan-so');
+            const viewData = document.getElementById('view-data-so');
+            const viewAdmin = document.getElementById('view-admin-dashboard');
 
-            if (!rackName) {
-                showToast("Pilih rak terlebih dahulu!", "error");
-                return;
+            const navScan = document.getElementById('nav-btn-scan');
+            const navData = document.getElementById('nav-btn-data');
+            const navAdmin = document.getElementById('nav-btn-admin');
+
+            if (viewScan) viewScan.classList.add('hidden');
+            if (viewData) viewData.classList.add('hidden');
+            if (viewAdmin) viewAdmin.classList.add('hidden');
+
+            const inactiveClass = "py-2 rounded-xl text-indigo-300 hover:text-white hover:bg-indigo-900 flex flex-col items-center justify-center space-y-0.5 transition";
+            const activeClass = "py-2 rounded-xl text-white bg-indigo-600 shadow-sm flex flex-col items-center justify-center space-y-0.5 transition";
+
+            if (navScan) navScan.className = inactiveClass;
+            if (navData) navData.className = inactiveClass;
+            if (navAdmin) navAdmin.className = inactiveClass;
+
+            if (view === 'scan') {
+                if (viewScan) viewScan.classList.remove('hidden');
+                if (navScan) navScan.className = activeClass;
+            } else if (view === 'data') {
+                if (viewData) viewData.classList.remove('hidden');
+                if (navData) navData.className = activeClass;
+                renderHistoryList();
+            } else if (view === 'admin') {
+                if (viewAdmin) viewAdmin.classList.remove('hidden');
+                if (navAdmin) navAdmin.className = activeClass;
+                renderAdminDashboard();
             }
-
-            const currentRackItems = localHistorySO.filter(item => item.rak === rackName);
-            const totalSku = currentRackItems.length;
-            const totalQty = currentRackItems.reduce((acc, curr) => acc + (parseFloat(curr.qty_fisik !== undefined ? curr.qty_fisik : curr.qty) || 0), 0);
-
-            const modal = document.getElementById('modal-complete-rack');
-            const nameEl = document.getElementById('rack-summary-name');
-            const officerEl = document.getElementById('rack-summary-officer');
-            const skuEl = document.getElementById('rack-summary-sku-count');
-            const qtyEl = document.getElementById('rack-summary-qty-total');
-
-            if (nameEl) nameEl.innerText = rackName;
-            if (officerEl) officerEl.innerText = officerName || '-';
-            if (skuEl) skuEl.innerText = totalSku;
-            if (qtyEl) qtyEl.innerText = totalQty;
-
-            if (modal) modal.classList.remove('hidden');
         }
 
-        function closeCompleteRackModal() {
-            const modal = document.getElementById('modal-complete-rack');
-            if (modal) modal.classList.add('hidden');
-        }
+        function renderAdminDashboard() {
+            const scannedCount = localHistorySO.length;
+            const totalMaster = MASTER_PRODUCTS.length || 70000;
+            const progressPercent = Math.min(100, ((scannedCount / totalMaster) * 100)).toFixed(1);
 
-        function confirmCompleteRack() {
-            const officerName = getSelectedOfficerName();
-            const rackEl = document.getElementById('input-rack-name');
-            const noteEl = document.getElementById('input-rack-note');
-            const rackName = rackEl ? rackEl.value.trim().toUpperCase() : '';
+            const elScanned = document.getElementById('adm-scanned-sku');
+            const elTotalMaster = document.getElementById('adm-total-master');
+            const elProgressBar = document.getElementById('adm-progress-bar');
 
-            const currentRackItems = localHistorySO.filter(item => item.rak === rackName);
-            const totalSku = currentRackItems.length;
-            const totalQty = currentRackItems.reduce((acc, curr) => acc + (parseFloat(curr.qty_fisik !== undefined ? curr.qty_fisik : curr.qty) || 0), 0);
+            if (elScanned) elScanned.innerText = scannedCount.toLocaleString('id-ID');
+            if (elTotalMaster) elTotalMaster.innerText = `/ ${totalMaster.toLocaleString('id-ID')} SKU`;
+            if (elProgressBar) elProgressBar.style.width = `${progressPercent}%`;
 
-            const rackRecord = {
-                id: 'RACK-' + Date.now(),
-                completed_at: new Date().toISOString(),
-                rak: rackName,
-                petugas: officerName,
-                total_sku: totalSku,
-                total_qty: totalQty,
-                catatan: noteEl ? noteEl.value.trim() : ''
-            };
+            const totalQtyFisik = localHistorySO.reduce((a, b) => a + (parseFloat(b.qty_fisik !== undefined ? b.qty_fisik : b.qty) || 0), 0);
 
-            completedRacks.push(rackRecord);
-            localStorage.setItem('so_completed_racks', JSON.stringify(completedRacks));
-
-            closeCompleteRackModal();
-            unlockSession();
-
-            if (rackEl) rackEl.value = '';
-            if (noteEl) noteEl.value = '';
-
-            showToast(`Rak ${rackName} selesai! Siap pindah ke Rak selanjutnya.`, "success");
-            playBeepSound(1800, 200);
-
-            setTimeout(() => {
-                if (rackEl) rackEl.focus();
-            }, 300);
-        }
-
-        function copyRackReport() {
-            const nameEl = document.getElementById('rack-summary-name');
-            const officerEl = document.getElementById('rack-summary-officer');
-            const skuEl = document.getElementById('rack-summary-sku-count');
-            const qtyEl = document.getElementById('rack-summary-qty-total');
-            const noteEl = document.getElementById('input-rack-note');
-
-            const text = `📋 LAPORAN STOK OPNAME RAK
-- Rak: ${nameEl ? nameEl.innerText : ''}
-- Petugas: ${officerEl ? officerEl.innerText : ''}
-- Total SKU: ${skuEl ? skuEl.innerText : 0}
-- Total Qty Terhitung: ${qtyEl ? qtyEl.innerText : 0}
-- Catatan: ${noteEl && noteEl.value ? noteEl.value : '-'}
-- Waktu: ${new Date().toLocaleString('id-ID')}`;
-
-            const tempArea = document.createElement('textarea');
-            tempArea.value = text;
-            document.body.appendChild(tempArea);
-            tempArea.select();
-            try {
-                document.execCommand('copy');
-                showToast("Ringkasan laporan disalin ke Clipboard!", "success");
-            } catch (err) {
-                showToast("Gagal menyalin ringkasan", "error");
-            }
-            document.body.removeChild(tempArea);
+            const elQtyFisik = document.getElementById('adm-total-qty-fisik');
+            if (elQtyFisik) elQtyFisik.innerText = totalQtyFisik.toLocaleString('id-ID');
         }
 
         function openConfigModal() {
@@ -2094,65 +2172,34 @@ function doPost(e) {
             initSupabaseClient();
             closeConfigModal();
             fetchMasterData();
+            fetchRevisiSheetData();
             showToast("Konfigurasi tersimpan!", "success");
         }
 
-        async function testSupabaseConnection() {
-            const cfgSpUrl = document.getElementById('cfg-supabase-url');
-            const cfgSpKey = document.getElementById('cfg-supabase-key');
-
-            const url = cfgSpUrl ? cfgSpUrl.value.trim() : '';
-            const key = cfgSpKey ? cfgSpKey.value.trim() : '';
-
-            if (!url || !key) {
-                showToast("Isi Supabase URL & Anon Key terlebih dahulu!", "error");
+        function exportDataToExcel(type = 'SO') {
+            if (localHistorySO.length === 0) {
+                showToast("Tidak ada data untuk diexport!", "error");
                 return;
             }
 
-            try {
-                const client = window.supabase.createClient(url, key);
-                const { count, error } = await client.from('products').select('*', { count: 'exact', head: true });
-                
-                if (error) {
-                    showToast("Koneksi Supabase Gagal: " + error.message, "error");
-                } else {
-                    showToast(`Koneksi Supabase Sukses! Terdeteksi ${count || 0} SKU di DB.`, "success");
-                }
-            } catch (err) {
-                showToast("Gagal menghubungkan ke Supabase: " + err.message, "error");
-            }
-        }
+            const rows = localHistorySO.map(i => ({
+                "ID SO": i.id,
+                "Time": new Date(i.timestamp).toLocaleString('id-ID'),
+                "Petugas": i.petugas,
+                "peran Petugas": i.peran || '-',
+                "Rak": i.rak,
+                "Kode Item": i.kode_stock,
+                "Kode Original": i.original_code || '-',
+                "Nama Produk": i.nama_barang,
+                "Family": i.family || '-',
+                "qty": i.qty_fisik !== undefined ? i.qty_fisik : (i.qty !== undefined ? i.qty : 0)
+            }));
 
-        function openSqlHelpModal() {
-            const modal = document.getElementById('modal-sql-setup');
-            if (modal) modal.classList.remove('hidden');
-        }
-
-        function closeSqlHelpModal() {
-            const modal = document.getElementById('modal-sql-setup');
-            if (modal) modal.classList.add('hidden');
-        }
-
-        function copySqlCode() {
-            const codeEl = document.getElementById('sql-code-block');
-            const txtBtn = document.getElementById('btn-copy-sql-txt');
-            if (!codeEl) return;
-
-            const tempArea = document.createElement('textarea');
-            tempArea.value = codeEl.innerText;
-            document.body.appendChild(tempArea);
-            tempArea.select();
-            try {
-                document.execCommand('copy');
-                if (txtBtn) txtBtn.innerText = "Tersalin!";
-                showToast("Script SQL disalin!", "success");
-                setTimeout(() => {
-                    if (txtBtn) txtBtn.innerText = "Salin SQL";
-                }, 2000);
-            } catch (err) {
-                showToast("Gagal menyalin kode", "error");
-            }
-            document.body.removeChild(tempArea);
+            const ws = XLSX.utils.json_to_sheet(rows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Hasil SO");
+            XLSX.writeFile(wb, `Hasil_SO_${new Date().toISOString().slice(0,10)}.xlsx`);
+            showToast("File Excel berhasil diunduh!", "success");
         }
 
         function openAppsScriptHelpModal() {
@@ -2187,30 +2234,19 @@ function doPost(e) {
             document.body.removeChild(tempArea);
         }
 
-        function exportDataToExcel(type = 'SO') {
-            if (localHistorySO.length === 0) {
-                showToast("Tidak ada data untuk diexport!", "error");
-                return;
+        function updatePendingSyncBanner() {
+            const banner = document.getElementById('sync-queue-banner');
+            const pendingCountEl = document.getElementById('pending-count');
+            if (!banner || !pendingCountEl) return;
+
+            const pending = localHistorySO.filter(item => !item.synced_gsheet).length;
+            pendingCountEl.innerText = pending;
+
+            if (pending > 0) {
+                banner.classList.remove('hidden');
+            } else {
+                banner.classList.add('hidden');
             }
-
-            const rows = localHistorySO.map(i => ({
-                "ID SO": i.id,
-                "Time": new Date(i.timestamp).toLocaleString('id-ID'),
-                "Petugas": i.petugas,
-                "peran Petugas": i.peran || '-',
-                "Rak": i.rak,
-                "Kode Item": i.kode_stock,
-                "Kode Original": i.original_code || '-',
-                "Nama Produk": i.nama_barang,
-                "Family": i.family || '-',
-                "qty": i.qty_fisik !== undefined ? i.qty_fisik : (i.qty !== undefined ? i.qty : 0)
-            }));
-
-            const ws = XLSX.utils.json_to_sheet(rows);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Hasil SO");
-            XLSX.writeFile(wb, `Hasil_SO_${new Date().toISOString().slice(0,10)}.xlsx`);
-            showToast("File Excel berhasil diunduh!", "success");
         }
     </script>
 </body>
