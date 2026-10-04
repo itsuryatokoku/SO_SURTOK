@@ -673,28 +673,36 @@ ALTER TABLE public.stock_opname_logs DISABLE ROW LEVEL SECURITY;
                     <pre id="appscript-code-block" class="whitespace-pre-wrap">
 function doPost(e) {
   var lock = LockService.getScriptLock();
-  lock.tryLock(10000); // Tunggu maksimal 10 detik jika ada request bersamaan
+  var success = lock.tryLock(10000); // Tunggu maksimal 10 detik untuk mengunci proses antrean
+
+  if (!success) {
+    return ContentService.createTextOutput(JSON.stringify({"result": "error", "message": "Lock timeout"}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
 
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var data = JSON.parse(e.postData.contents);
     var record = data.record ? data.record : data;
-    var id = record.id ? String(record.id) : '';
+    var id = record.id ? String(record.id).trim() : '';
 
     // Catat ke Sheet Hasil SO
     var sheetSO = ss.getSheetByName("Hasil SO");
     if (!sheetSO) {
       sheetSO = ss.insertSheet("Hasil SO");
       sheetSO.appendRow(["ID SO", "Time", "Petugas", "peran Petugas", "Rak", "Kode Item", "Kode Original", "Nama Produk", "Family", "qty"]);
+      SpreadsheetApp.flush();
     }
     
-    // Cek apakah ID SO sudah ada di Sheet (Mencegah Data Double)
+    // Cek Deduplikasi berbasis ID SO
     if (id !== '') {
       var lastRow = sheetSO.getLastRow();
       if (lastRow > 1) {
         var existingIds = sheetSO.getRange(2, 1, lastRow - 1, 1).getValues();
         for (var i = 0; i < existingIds.length; i++) {
-          if (String(existingIds[i][0]).replace(/^'/, '') === id.replace(/^'/, '')) {
+          var cleanExisting = String(existingIds[i][0]).replace(/^'/, '').trim();
+          var cleanNew = id.replace(/^'/, '').trim();
+          if (cleanExisting === cleanNew) {
             return ContentService.createTextOutput(JSON.stringify({"result": "skipped_duplicate", "id": id}))
               .setMimeType(ContentService.MimeType.JSON);
           }
@@ -716,6 +724,8 @@ function doPost(e) {
       record.family || '-',
       qtyVal
     ]);
+
+    SpreadsheetApp.flush(); // PAKSA PENULISAN LANGSUNG KE SHEET SEBELUM LOCK DILEPAS
 
     return ContentService.createTextOutput(JSON.stringify({"result": "success", "id": id}))
       .setMimeType(ContentService.MimeType.JSON);
@@ -1051,7 +1061,6 @@ function doPost(e) {
             return '';
         }
 
-        // FETCH GSHEET SINGLE PAGE VIA JSONP
         function fetchGSheetPageJSONP(sheetId, sheetName, offset = 0, limit = 5000) {
             return new Promise((resolve, reject) => {
                 const callbackName = 'gsheet_cb_' + Math.random().toString(36).substring(2, 10);
@@ -1132,7 +1141,6 @@ function doPost(e) {
             });
         }
 
-        // PAGINATED FETCH ALL ROWS (SUPPORT 70,000+ SKU)
         async function fetchGSheetAllRows(sheetId, sheetName, progressCallback) {
             let allRows = [];
             let offset = 0;
@@ -1680,19 +1688,27 @@ function doPost(e) {
             const btnSave = document.getElementById('btn-save-opname');
             if (btnSave) btnSave.disabled = true;
 
+            let isSupabaseOk = false;
             if (supabaseClient) {
                 try {
                     const { error } = await supabaseClient.from('stock_opname_logs').insert([opnameRecord]);
                     if (!error) {
                         opnameRecord.synced_supabase = true;
+                        isSupabaseOk = true;
                     }
                 } catch (spErr) {
                     console.warn("Supabase insert error:", spErr);
                 }
             }
 
-            const isGSheetPushed = await postToWebhook(opnameRecord);
-            opnameRecord.synced_gsheet = isGSheetPushed;
+            // HANYA KIRIM LANGSUNG KE GSHEET WEBHOOK JIKA SUPABASE TIDAK AKTIF ATAU GAGAL
+            // (Mencegah Double Request Karena SQL Trigger Supabase Juga Mengirim Ke Webhook)
+            if (!isSupabaseOk) {
+                const isGSheetPushed = await postToWebhook(opnameRecord);
+                opnameRecord.synced_gsheet = isGSheetPushed;
+            } else {
+                opnameRecord.synced_gsheet = true; // Ditangani secara otomatis oleh Supabase SQL Trigger
+            }
 
             if (btnSave) btnSave.disabled = false;
 
