@@ -845,8 +845,16 @@ function doPost(e) {
         function initSupabaseClient() {
             if (SUPABASE_URL && SUPABASE_KEY && window.supabase) {
                 try {
-                    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-                    setupSupabaseRealtimeSync();
+                    const allowRealtime = isWebSocketAllowed();
+                    
+                    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+                        auth: { persistSession: false },
+                        realtime: allowRealtime ? {} : { disabled: true }
+                    });
+
+                    if (allowRealtime) {
+                        setupSupabaseRealtimeSync();
+                    }
                 } catch (e) {
                     console.error("Supabase Init Error:", e);
                     supabaseClient = null;
@@ -855,6 +863,49 @@ function doPost(e) {
                 supabaseClient = null;
             }
             updateIndicators();
+        }
+
+        // Check if WebSockets are permitted in the current container/iframe environment
+        function isWebSocketAllowed() {
+            try {
+                // WebSockets are restricted inside Canvas and sandboxed iFrames
+                if (window.self !== window.top) return false;
+                if (typeof WebSocket === 'undefined') return false;
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        // REALTIME LISTENER: Jika ada input dari HP lain di Supabase, otomatis push ke GSheet
+        function setupSupabaseRealtimeSync() {
+            if (!supabaseClient || !isWebSocketAllowed()) return;
+            try {
+                if (realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
+                realtimeChannel = supabaseClient
+                    .channel('public:stock_opname_logs')
+                    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'stock_opname_logs' }, async (payload) => {
+                        const newLog = payload.new;
+                        if (newLog && WEBHOOK_URL && !newLog.synced_gsheet) {
+                            const pushed = await postToWebhook(newLog);
+                            if (pushed) {
+                                try {
+                                    await supabaseClient
+                                        .from('stock_opname_logs')
+                                        .update({ synced_gsheet: true })
+                                        .eq('id', newLog.id);
+                                } catch(e) {}
+                            }
+                        }
+                    })
+                    .subscribe((status, err) => {
+                        if (err || status === 'CHANNEL_ERROR') {
+                            console.warn("Supabase Realtime status:", status, err);
+                        }
+                    });
+            } catch(err) {
+                console.warn("Realtime subscription warning:", err);
+            }
         }
 
         // AUTO-SYNC WORKER: Cek dan Sync otomatis data pending ke Google Sheet setiap 10 detik
@@ -884,33 +935,6 @@ function doPost(e) {
                     updatePendingSyncBanner();
                 }
             }, 10000);
-        }
-
-        // REALTIME LISTENER: Jika ada input dari HP lain di Supabase, otomatis push ke GSheet
-        function setupSupabaseRealtimeSync() {
-            if (!supabaseClient) return;
-            try {
-                if (realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
-                realtimeChannel = supabaseClient
-                    .channel('public:stock_opname_logs')
-                    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'stock_opname_logs' }, async (payload) => {
-                        const newLog = payload.new;
-                        if (newLog && WEBHOOK_URL && !newLog.synced_gsheet) {
-                            const pushed = await postToWebhook(newLog);
-                            if (pushed) {
-                                try {
-                                    await supabaseClient
-                                        .from('stock_opname_logs')
-                                        .update({ synced_gsheet: true })
-                                        .eq('id', newLog.id);
-                                } catch(e) {}
-                            }
-                        }
-                    })
-                    .subscribe();
-            } catch(err) {
-                console.warn("Realtime subscription warning:", err);
-            }
         }
 
         function updateIndicators() {
