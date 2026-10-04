@@ -781,20 +781,14 @@ function doPost(e) {
       var qtyRev = record.qty_revisi !== undefined ? record.qty_revisi : (data.qty_revisi !== undefined ? data.qty_revisi : record.qty);
 
       var targetRow = -1;
-      var finder = sheetRevisi.getRange("A:A").createTextFinder(kodeItem).matchEntireCell(true);
-      var cell = finder.findNext();
-      if (cell) {
-        targetRow = cell.getRow();
-      } else {
-        var lastRow = sheetRevisi.getLastRow();
-        if (lastRow >= 1) {
-          var colAValues = sheetRevisi.getRange(1, 1, lastRow, 1).getValues();
-          for (var r = 0; r < colAValues.length; r++) {
-            var valInCell = String(colAValues[r][0] || '').replace(/^'/, '').trim();
-            if (valInCell.toLowerCase() === kodeItem.toLowerCase()) {
-              targetRow = r + 1;
-              break;
-            }
+      var lastRow = sheetRevisi.getLastRow();
+      if (lastRow >= 1) {
+        var colAValues = sheetRevisi.getRange(1, 1, lastRow, 1).getDisplayValues();
+        for (var r = 0; r < colAValues.length; r++) {
+          var valInCell = String(colAValues[r][0] || '').replace(/^'/, '').trim();
+          if (valInCell.toLowerCase() === kodeItem.toLowerCase()) {
+            targetRow = r + 1;
+            break;
           }
         }
       }
