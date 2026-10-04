@@ -111,7 +111,7 @@
                 </button>
                 <button id="nav-btn-data" onclick="switchMainView('data')" class="py-2 rounded-xl text-indigo-300 hover:text-white hover:bg-indigo-900 flex flex-col items-center justify-center space-y-0.5 transition">
                     <i class="fa-solid fa-rectangle-list text-sm"></i>
-                    <span>Data &amp; Revisi</span>
+                    <span>Data SO</span>
                 </button>
                 <button id="nav-btn-admin" onclick="switchMainView('admin')" class="py-2 rounded-xl text-indigo-300 hover:text-white hover:bg-indigo-900 flex flex-col items-center justify-center space-y-0.5 transition">
                     <i class="fa-solid fa-chart-pie text-sm text-amber-400"></i>
@@ -226,7 +226,7 @@
                         <div class="space-y-1 pr-2">
                             <div class="flex items-center space-x-1.5 flex-wrap gap-y-1">
                                 <span id="res-product-code" class="inline-block bg-indigo-600 text-white font-mono text-[11px] font-black px-2 py-0.5 rounded-md">
-                                    KODE-STOCK
+                                    KODE-ITEM
                                 </span>
                                 <span id="res-product-orig" class="inline-block bg-slate-200 text-slate-700 font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-md">
                                     ORIG-CODE
@@ -236,37 +236,18 @@
                                 </span>
                             </div>
                             <h2 id="res-product-name" class="font-extrabold text-sm text-slate-900 leading-snug pt-0.5">
-                                Nama Barang
+                                Nama Produk
                             </h2>
-                        </div>
-                    </div>
-
-                    <!-- Info Harga & Stok System -->
-                    <div class="grid grid-cols-3 gap-1.5 pt-2 border-t border-indigo-100 text-[10px]">
-                        <div class="bg-white p-1.5 rounded-lg border border-slate-200 text-center">
-                            <div class="text-slate-400 font-bold">Qty System</div>
-                            <div id="res-qty-system" class="font-extrabold text-slate-800 text-xs">0</div>
-                        </div>
-                        <div class="bg-white p-1.5 rounded-lg border border-slate-200 text-center">
-                            <div class="text-slate-400 font-bold">Harga Beli</div>
-                            <div id="res-harga-beli" class="font-extrabold text-slate-800 text-xs">Rp 0</div>
-                        </div>
-                        <div class="bg-white p-1.5 rounded-lg border border-slate-200 text-center">
-                            <div class="text-slate-400 font-bold">Harga Cash</div>
-                            <div id="res-harga-cash" class="font-extrabold text-emerald-700 text-xs">Rp 0</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Form Qty & Live Variance Analysis -->
+                <!-- Form Qty Input -->
                 <div class="space-y-2">
                     <div class="flex justify-between items-center">
                         <label class="block text-[10px] font-extrabold text-slate-500 uppercase">
-                            Qty Fisik Terhitung <span class="text-rose-500">*</span>
+                            Qty Terhitung <span class="text-rose-500">*</span>
                         </label>
-                        <div id="variance-badge" class="px-2 py-0.5 rounded-md font-bold text-[10px] bg-slate-100 text-slate-600">
-                            Selisih: 0
-                        </div>
                     </div>
 
                     <div class="flex items-center space-x-2">
@@ -274,7 +255,7 @@
                             <i class="fa-solid fa-minus"></i>
                         </button>
                         
-                        <input type="number" id="input-qty" inputmode="decimal" value="1" min="0" step="any" oninput="calculateLiveVariance()" class="flex-1 bg-slate-50 border-2 border-indigo-600 rounded-xl h-12 text-center text-2xl font-black text-indigo-900 outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white shadow-inner">
+                        <input type="number" id="input-qty" inputmode="decimal" value="1" min="0" step="any" class="flex-1 bg-slate-50 border-2 border-indigo-600 rounded-xl h-12 text-center text-2xl font-black text-indigo-900 outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white shadow-inner">
                         
                         <button type="button" onclick="adjustQty(1)" class="w-12 h-12 rounded-xl bg-indigo-100 hover:bg-indigo-200 active:bg-indigo-300 font-extrabold text-lg text-indigo-800 shadow-sm flex items-center justify-center btn-touch">
                             <i class="fa-solid fa-plus"></i>
@@ -304,87 +285,63 @@
             </section>
         </div>
 
-        <!-- VIEW 2: HISTORI SO & REVISI SO -->
+        <!-- VIEW 2: HISTORI DATA SO -->
         <div id="view-data-so" class="hidden space-y-3">
             <section class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-3.5 space-y-3">
-                <!-- Navigation Sub-Tabs -->
-                <div class="flex border-b border-slate-200 text-xs font-bold">
-                    <button id="tab-btn-so" onclick="switchHistoryTab('so')" class="flex-1 py-2 text-center border-b-2 border-indigo-600 text-indigo-700 bg-indigo-50/50 rounded-t-xl">
-                        <i class="fa-solid fa-list-check mr-1"></i> Stok Opname (<span id="count-so-badge">0</span>)
-                    </button>
-                    <button id="tab-btn-revisi" onclick="switchHistoryTab('revisi')" class="flex-1 py-2 text-center border-b-2 border-transparent text-slate-500 hover:text-slate-800">
-                        <i class="fa-solid fa-triangle-exclamation mr-1 text-amber-500"></i> Revisi SO / Selisih (<span id="count-revisi-badge">0</span>)
+                <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                    <span class="text-xs font-bold text-slate-800 flex items-center uppercase tracking-wide">
+                        <i class="fa-solid fa-list-check text-indigo-600 mr-1.5"></i> Daftar Hasil Stok Opname (<span id="count-so-badge">0</span>)
+                    </span>
+                    <button onclick="renderHistoryList()" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg font-bold flex items-center space-x-1">
+                        <i class="fa-solid fa-rotate"></i>
+                        <span>Refresh</span>
                     </button>
                 </div>
 
-                <!-- SUB-TAB 1: ALL STOK OPNAME -->
-                <div id="tab-content-so" class="space-y-2">
-                    <div id="sync-queue-banner" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-2.5 flex items-center justify-between text-xs">
-                        <div class="flex items-center space-x-2 text-amber-900">
-                            <i class="fa-solid fa-cloud-arrow-up text-amber-600 text-sm animate-bounce"></i>
-                            <div>
-                                <div class="font-bold text-[11px]"><span id="pending-count">0</span> Item Belum Terkirim</div>
-                                <div class="text-[9px] text-amber-700">Tersimpan di HP &amp; Siap Resync</div>
-                            </div>
-                        </div>
-                        <button onclick="resyncPendingToGoogleSheets()" class="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-[10px] shadow-sm btn-touch flex items-center space-x-1">
-                            <i class="fa-solid fa-rotate mr-0.5"></i> Resync Now
-                        </button>
-                    </div>
-
-                    <!-- Tombol Sync Supabase ke Google Sheet -->
-                    <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-2.5 flex justify-between items-center text-xs">
-                        <div class="flex items-center space-x-2 text-indigo-950">
-                            <i class="fa-solid fa-database text-emerald-600 text-base"></i>
-                            <div>
-                                <div class="font-black text-[11px]">Sync Database Supabase ➔ Google Sheet</div>
-                                <div class="text-[9px] text-indigo-700">Kirim ulang seluruh data SO dari Supabase ke Sheet</div>
-                            </div>
-                        </div>
-                        <button onclick="syncSupabaseToGoogleSheets()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-extrabold rounded-xl text-[10px] shadow-sm btn-touch flex items-center space-x-1 shrink-0">
-                            <i class="fa-solid fa-arrows-rotate"></i>
-                            <span>Sync ke Sheet</span>
-                        </button>
-                    </div>
-
-                    <div id="mobile-history-container" class="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
-                        <div class="py-8 text-center text-slate-400 text-xs space-y-1">
-                            <i class="fa-solid fa-clipboard-list text-2xl text-slate-300"></i>
-                            <p>Belum ada data opname yang disimpan pada sesi ini.</p>
+                <div id="sync-queue-banner" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-2.5 flex items-center justify-between text-xs">
+                    <div class="flex items-center space-x-2 text-amber-900">
+                        <i class="fa-solid fa-cloud-arrow-up text-amber-600 text-sm animate-bounce"></i>
+                        <div>
+                            <div class="font-bold text-[11px]"><span id="pending-count">0</span> Item Belum Terkirim</div>
+                            <div class="text-[9px] text-amber-700">Tersimpan di HP &amp; Siap Resync</div>
                         </div>
                     </div>
-                    
-                    <div class="pt-2 flex justify-between items-center border-t border-slate-100 gap-2">
-                        <button onclick="exportDataToExcel('SO')" class="flex-1 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 btn-touch">
-                            <i class="fa-solid fa-file-excel text-emerald-400"></i>
-                            <span>Export SO (.xlsx)</span>
-                        </button>
-                        <button onclick="openAppsScriptHelpModal()" class="py-2 px-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-800 border border-amber-300 font-bold rounded-xl text-xs flex items-center justify-center space-x-1 btn-touch">
-                            <i class="fa-solid fa-code text-amber-600"></i>
-                            <span>Script Sync</span>
-                        </button>
-                    </div>
+                    <button onclick="resyncPendingToGoogleSheets()" class="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-[10px] shadow-sm btn-touch flex items-center space-x-1">
+                        <i class="fa-solid fa-rotate mr-0.5"></i> Resync Now
+                    </button>
                 </div>
 
-                <!-- SUB-TAB 2: REVISI SO (BARANG SELISIH ONLY) -->
-                <div id="tab-content-revisi" class="hidden space-y-2">
-                    <p class="text-[11px] text-slate-500 italic bg-amber-50 p-2 rounded-lg border border-amber-200">
-                        <i class="fa-solid fa-info-circle text-amber-600 mr-1"></i>
-                        Menampilkan khusus barang dengan selisih stok (Qty Fisik ≠ Qty System) untuk bahan verifikasi/revisi.
-                    </p>
-
-                    <div id="mobile-revisi-container" class="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
-                        <div class="py-8 text-center text-slate-400 text-xs">
-                            Tidak ada barang selisih saat ini.
+                <!-- Tombol Sync Supabase ke Google Sheet -->
+                <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-2.5 flex justify-between items-center text-xs">
+                    <div class="flex items-center space-x-2 text-indigo-950">
+                        <i class="fa-solid fa-database text-emerald-600 text-base"></i>
+                        <div>
+                            <div class="font-black text-[11px]">Sync Database Supabase ➔ Google Sheet</div>
+                            <div class="text-[9px] text-indigo-700">Kirim ulang seluruh data SO dari Supabase ke Sheet</div>
                         </div>
                     </div>
+                    <button onclick="syncSupabaseToGoogleSheets()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-extrabold rounded-xl text-[10px] shadow-sm btn-touch flex items-center space-x-1 shrink-0">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                        <span>Sync ke Sheet</span>
+                    </button>
+                </div>
 
-                    <div class="pt-2 flex justify-between items-center border-t border-slate-100">
-                        <button onclick="exportDataToExcel('REVISI')" class="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 btn-touch">
-                            <i class="fa-solid fa-file-excel"></i>
-                            <span>Export "Revisi SO" (.xlsx)</span>
-                        </button>
+                <div id="mobile-history-container" class="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+                    <div class="py-8 text-center text-slate-400 text-xs space-y-1">
+                        <i class="fa-solid fa-clipboard-list text-2xl text-slate-300"></i>
+                        <p>Belum ada data opname yang disimpan pada sesi ini.</p>
                     </div>
+                </div>
+                
+                <div class="pt-2 flex justify-between items-center border-t border-slate-100 gap-2">
+                    <button onclick="exportDataToExcel('SO')" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 btn-touch">
+                        <i class="fa-solid fa-file-excel text-emerald-400"></i>
+                        <span>Export Hasil SO (.xlsx)</span>
+                    </button>
+                    <button onclick="openAppsScriptHelpModal()" class="py-2.5 px-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-800 border border-amber-300 font-bold rounded-xl text-xs flex items-center justify-center space-x-1 btn-touch">
+                        <i class="fa-solid fa-code text-amber-600"></i>
+                        <span>Script Sync</span>
+                    </button>
                 </div>
             </section>
         </div>
@@ -414,28 +371,7 @@
                         <i class="fa-solid fa-cubes text-emerald-400"></i>
                     </div>
                     <div id="adm-total-qty-fisik" class="text-xl font-black text-emerald-400">0</div>
-                    <div class="text-[9px] text-slate-400">System Qty: <strong id="adm-total-qty-sys" class="text-slate-200">0</strong></div>
-                </div>
-
-                <div class="bg-amber-50 border border-amber-200 p-3 rounded-2xl space-y-1">
-                    <div class="text-[10px] text-amber-800 font-bold uppercase tracking-wider flex items-center justify-between">
-                        <span>Item Selisih</span>
-                        <i class="fa-solid fa-triangle-exclamation text-amber-600"></i>
-                    </div>
-                    <div id="adm-count-selisih" class="text-xl font-black text-amber-900">0</div>
-                    <div class="text-[9px] text-amber-700 flex justify-between">
-                        <span>Over: <strong id="adm-count-over" class="text-emerald-700">+0</strong></span>
-                        <span>Short: <strong id="adm-count-short" class="text-rose-700">-0</strong></span>
-                    </div>
-                </div>
-
-                <div class="bg-rose-50 border border-rose-200 p-3 rounded-2xl space-y-1">
-                    <div class="text-[10px] text-rose-800 font-bold uppercase tracking-wider flex items-center justify-between">
-                        <span>Nilai Selisih Rp</span>
-                        <i class="fa-solid fa-money-bill-wave text-rose-600"></i>
-                    </div>
-                    <div id="adm-nilai-selisih-rp" class="text-lg font-black text-rose-900">Rp 0</div>
-                    <div class="text-[9px] text-rose-700">Estimasi Selisih Cash</div>
+                    <div class="text-[9px] text-slate-400">Total Item Terhitung</div>
                 </div>
             </div>
 
@@ -452,22 +388,11 @@
                 </div>
 
                 <!-- Admin Filters -->
-                <div class="grid grid-cols-2 gap-2 text-[10px]">
-                    <div>
-                        <label class="block font-bold text-slate-500 uppercase mb-0.5">Filter Petugas</label>
-                        <select id="adm-filter-officer" onchange="renderAdminDashboard()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 font-semibold text-xs outline-none">
-                            <option value="">-- Semua Petugas --</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block font-bold text-slate-500 uppercase mb-0.5">Filter Status</label>
-                        <select id="adm-filter-status" onchange="renderAdminDashboard()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 font-semibold text-xs outline-none">
-                            <option value="">-- Semua Status --</option>
-                            <option value="Sesuai">Sesuai (0)</option>
-                            <option value="Lebih">Lebih (+ Over)</option>
-                            <option value="Kurang">Kurang (- Short)</option>
-                        </select>
-                    </div>
+                <div class="text-[10px]">
+                    <label class="block font-bold text-slate-500 uppercase mb-0.5">Filter Petugas</label>
+                    <select id="adm-filter-officer" onchange="renderAdminDashboard()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 font-semibold text-xs outline-none">
+                        <option value="">-- Semua Petugas --</option>
+                    </select>
                 </div>
 
                 <!-- Admin Audit List -->
@@ -502,6 +427,26 @@
         </div>
 
     </main>
+
+    <!-- MODAL SYNC PROGRESS -->
+    <div id="modal-sync-progress" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden">
+        <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl p-4 space-y-3 animate-in fade-in zoom-in duration-150">
+            <div class="flex items-center space-x-3 text-indigo-700">
+                <i class="fa-solid fa-arrows-rotate fa-spin text-2xl" id="sync-progress-spinner"></i>
+                <div>
+                    <h3 class="font-black text-sm text-slate-900" id="sync-progress-title">Proses Import SKU...</h3>
+                    <p class="text-[10px] text-slate-500" id="sync-progress-sub">Sedang mengambil data dari Google Sheet</p>
+                </div>
+            </div>
+            <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden border border-slate-300">
+                <div id="sync-progress-bar-fill" class="bg-emerald-500 h-full transition-all duration-200" style="width: 0%"></div>
+            </div>
+            <div class="flex justify-between items-center text-[10px] font-mono text-slate-600 font-bold">
+                <span id="sync-progress-counts">0 / 0 SKU</span>
+                <span id="sync-progress-percent">0%</span>
+            </div>
+        </div>
+    </div>
 
     <!-- MODAL CONFIGURATION -->
     <div id="modal-config" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden">
@@ -564,11 +509,11 @@
                     <div class="font-bold text-slate-800 text-xs flex items-center justify-between">
                         <span>Import SKU dari GSheet ke Supabase</span>
                         <button onclick="syncGSheetProductsToSupabase()" class="px-2.5 py-1 bg-indigo-600 text-white rounded text-[10px] font-bold hover:bg-indigo-700">
-                            Push 70k SKU ke Supabase
+                            Push All 70k SKU ke Supabase
                         </button>
                     </div>
                     <p class="text-[10px] text-slate-500">
-                        Memindahkan seluruh Master Item dari Google Sheet ke Database Supabase agar pencarian 70,000 SKU menjadi super cepat.
+                        Memindahkan SELURUH Master Item dari Google Sheet ke Database Supabase (dengan auto-pagination 70.000+ SKU).
                     </p>
                 </div>
             </div>
@@ -633,13 +578,7 @@ CREATE TABLE IF NOT EXISTS public.stock_opname_logs (
     original_code VARCHAR(100),
     nama_barang TEXT,
     family VARCHAR(100),
-    qty_system NUMERIC DEFAULT 0,
-    qty_fisik NUMERIC DEFAULT 0,
-    selisih NUMERIC DEFAULT 0,
-    harga_beli NUMERIC DEFAULT 0,
-    harga_cash NUMERIC DEFAULT 0,
-    total_nilai_cash NUMERIC DEFAULT 0,
-    status VARCHAR(50)
+    qty_fisik NUMERIC DEFAULT 0
 );
 
 -- 3. Matikan Row Level Security (RLS) untuk kemudahan akses API anon
@@ -682,14 +621,14 @@ ALTER TABLE public.stock_opname_logs DISABLE ROW LEVEL SECURITY;
                         <div id="rack-summary-sku-count" class="text-xl font-black text-slate-800">0</div>
                     </div>
                     <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-center">
-                        <div class="text-slate-400 text-[10px] font-bold uppercase">Total Qty Fisik</div>
+                        <div class="text-slate-400 text-[10px] font-bold uppercase">Total Qty Terhitung</div>
                         <div id="rack-summary-qty-total" class="text-xl font-black text-emerald-600">0</div>
                     </div>
                 </div>
 
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">Catatan Rak (Opsional)</label>
-                    <input type="text" id="input-rack-note" placeholder="Misal: Rak rapi, ada item selisih..." 
+                    <input type="text" id="input-rack-note" placeholder="Misal: Rak rapi..." 
                         class="w-full border border-slate-300 rounded-xl p-2.5 text-xs outline-none focus:ring-2 focus:ring-emerald-500">
                 </div>
 
@@ -723,7 +662,7 @@ ALTER TABLE public.stock_opname_logs DISABLE ROW LEVEL SECURITY;
 
             <div class="p-4 space-y-3 overflow-y-auto text-xs flex-1">
                 <p class="text-[11px] text-slate-600">
-                    Pasang kode script ini di Google Spreadsheet Anda agar setiap hasil scan Stok Opname otomatis tercatat di Sheet **Stok Opname** &amp; **Revisi SO**:
+                    Pasang kode script ini di Google Spreadsheet Anda agar setiap hasil scan Stok Opname otomatis tercatat di Sheet **Stok Opname**:
                 </p>
 
                 <div class="relative bg-slate-950 text-slate-100 p-3 rounded-xl font-mono text-[10px] leading-relaxed overflow-x-auto border border-slate-800">
@@ -736,55 +675,46 @@ function doPost(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var data = JSON.parse(e.postData.contents);
-    
-    // 1. Catat ke Sheet Stok Opname
+    var record = data.record ? data.record : data;
+    var id = record.id ? String(record.id) : '';
+
+    // Catat ke Sheet Stok Opname
     var sheetSO = ss.getSheetByName("Stok Opname");
     if (!sheetSO) {
       sheetSO = ss.insertSheet("Stok Opname");
-      sheetSO.appendRow(["Waktu", "Petugas", "Peran", "Nama Rak", "Kode Stock", "Original Code", "Nama Barang", "Family", "Qty System", "Qty Fisik", "Selisih", "Harga Beli", "Harga Cash", "Total Cash Fisik", "Status"]);
+      sheetSO.appendRow(["ID SO", "Waktu", "Petugas", "Peran Petugas", "Rak", "Kode Item", "Kode Original", "Nama Produk", "Family", "Qty"]);
     }
     
-    sheetSO.appendRow([
-      data.timestamp || new Date().toLocaleString('id-ID'),
-      data.petugas,
-      data.peran,
-      data.rak,
-      "'" + data.kode_stock,
-      "'" + data.original_code,
-      data.nama_barang,
-      data.family,
-      data.qty_system,
-      data.qty_fisik,
-      data.selisih,
-      data.harga_beli,
-      data.harga_cash,
-      data.total_nilai_cash,
-      data.status
-    ]);
-
-    // 2. Jika ada selisih, catat juga ke Sheet Revisi SO
-    if (data.selisih && Number(data.selisih) !== 0) {
-      var sheetRevisi = ss.getSheetByName("Revisi SO");
-      if (!sheetRevisi) {
-        sheetRevisi = ss.insertSheet("Revisi SO");
-        sheetRevisi.appendRow(["Waktu", "Petugas", "Nama Rak", "Kode Stock", "Original Code", "Nama Barang", "Family", "Qty System", "Qty Fisik", "Selisih", "Status Selisih"]);
+    // Cek apakah ID SO sudah ada di Sheet (Mencegah Data Double)
+    if (id !== '') {
+      var lastRow = sheetSO.getLastRow();
+      if (lastRow > 1) {
+        var existingIds = sheetSO.getRange(2, 1, lastRow - 1, 1).getValues();
+        for (var i = 0; i < existingIds.length; i++) {
+          if (String(existingIds[i][0]) === id) {
+            return ContentService.createTextOutput(JSON.stringify({"result": "skipped_duplicate", "id": id}))
+              .setMimeType(ContentService.MimeType.JSON);
+          }
+        }
       }
-      sheetRevisi.appendRow([
-        data.timestamp || new Date().toLocaleString('id-ID'),
-        data.petugas,
-        data.rak,
-        "'" + data.kode_stock,
-        "'" + data.original_code,
-        data.nama_barang,
-        data.family,
-        data.qty_system,
-        data.qty_fisik,
-        data.selisih,
-        data.status
-      ]);
     }
 
-    return ContentService.createTextOutput(JSON.stringify({"result": "success"}))
+    var qtyVal = record.qty_fisik !== undefined ? record.qty_fisik : (record.qty !== undefined ? record.qty : 0);
+
+    sheetSO.appendRow([
+      "'" + id,
+      record.timestamp || new Date().toLocaleString('id-ID'),
+      record.petugas || '-',
+      record.peran || '-',
+      record.rak || '-',
+      "'" + (record.kode_stock || ''),
+      "'" + (record.original_code || ''),
+      record.nama_barang || '-',
+      record.family || '-',
+      qtyVal
+    ]);
+
+    return ContentService.createTextOutput(JSON.stringify({"result": "success", "id": id}))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({"result": "error", "message": err.toString()}))
@@ -805,13 +735,12 @@ function doPost(e) {
     <script>
         // CONFIGURATION STATE
         let SPREADSHEET_URL = localStorage.getItem('so_gsheet_url') || "https://docs.google.com/spreadsheets/d/1V8xUgYgUTC8v_1PV868PvEa1wPfC9mFX2Ia5NjaUUME/edit?gid=0#gid=0";
-        let WEBHOOK_URL = localStorage.getItem('so_webhook_url') || "https://script.google.com/macros/s/AKfycbza5Q86UxeirF2kFT9i0teKA1NGFVc9gMnBgy3k4VdN4-fZAunggupQQjgEueei3cnk_g/exec";
+        let WEBHOOK_URL = localStorage.getItem('so_webhook_url') || "https://script.google.com/macros/s/AKfycbyEYAjOWG1a15Gi4ViYLzYOqn5uOvZ0Sn4ISBdWg2kv1dbzf4dIm912xoFhekU3Vd7e0g/exec";
         let SUPABASE_URL = localStorage.getItem('so_supabase_url') || "https://qtfyfrvrqvbgyaezorbb.supabase.co";
         let SUPABASE_KEY = localStorage.getItem('so_supabase_key') || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF0ZnlmcnZycXZiZ3lhZXpvcmJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA4OTkyNzIsImV4cCI6MjEwNjQ3NTI3Mn0.vL8COXCm7UrhoMSj0iBV8HwvN6VZtd8X08YbxSkLcQM";
 
         let supabaseClient = null;
         let autoSyncTimer = null;
-        let realtimeChannel = null;
 
         // MASTER MEMORY DATA
         let MASTER_PRODUCTS = []; 
@@ -846,15 +775,10 @@ function doPost(e) {
             if (SUPABASE_URL && SUPABASE_KEY && window.supabase) {
                 try {
                     const allowRealtime = isWebSocketAllowed();
-                    
                     supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
                         auth: { persistSession: false },
                         realtime: allowRealtime ? {} : { disabled: true }
                     });
-
-                    if (allowRealtime) {
-                        setupSupabaseRealtimeSync();
-                    }
                 } catch (e) {
                     console.error("Supabase Init Error:", e);
                     supabaseClient = null;
@@ -865,10 +789,8 @@ function doPost(e) {
             updateIndicators();
         }
 
-        // Check if WebSockets are permitted in the current container/iframe environment
         function isWebSocketAllowed() {
             try {
-                // WebSockets are restricted inside Canvas and sandboxed iFrames
                 if (window.self !== window.top) return false;
                 if (typeof WebSocket === 'undefined') return false;
                 return true;
@@ -877,38 +799,6 @@ function doPost(e) {
             }
         }
 
-        // REALTIME LISTENER: Jika ada input dari HP lain di Supabase, otomatis push ke GSheet
-        function setupSupabaseRealtimeSync() {
-            if (!supabaseClient || !isWebSocketAllowed()) return;
-            try {
-                if (realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
-                realtimeChannel = supabaseClient
-                    .channel('public:stock_opname_logs')
-                    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'stock_opname_logs' }, async (payload) => {
-                        const newLog = payload.new;
-                        if (newLog && WEBHOOK_URL && !newLog.synced_gsheet) {
-                            const pushed = await postToWebhook(newLog);
-                            if (pushed) {
-                                try {
-                                    await supabaseClient
-                                        .from('stock_opname_logs')
-                                        .update({ synced_gsheet: true })
-                                        .eq('id', newLog.id);
-                                } catch(e) {}
-                            }
-                        }
-                    })
-                    .subscribe((status, err) => {
-                        if (err || status === 'CHANNEL_ERROR') {
-                            console.warn("Supabase Realtime status:", status, err);
-                        }
-                    });
-            } catch(err) {
-                console.warn("Realtime subscription warning:", err);
-            }
-        }
-
-        // AUTO-SYNC WORKER: Cek dan Sync otomatis data pending ke Google Sheet setiap 10 detik
         function startAutoSyncWorker() {
             if (autoSyncTimer) clearInterval(autoSyncTimer);
             autoSyncTimer = setInterval(async () => {
@@ -976,46 +866,11 @@ function doPost(e) {
             if (elTotalMaster) elTotalMaster.innerText = `/ ${totalMaster.toLocaleString('id-ID')} SKU`;
             if (elProgressBar) elProgressBar.style.width = `${progressPercent}%`;
 
-            const totalQtyFisik = localHistorySO.reduce((a, b) => a + (parseFloat(b.qty_fisik) || 0), 0);
-            const totalQtySys = localHistorySO.reduce((a, b) => a + (parseFloat(b.qty_system) || 0), 0);
+            const totalQtyFisik = localHistorySO.reduce((a, b) => a + (parseFloat(b.qty_fisik !== undefined ? b.qty_fisik : b.qty) || 0), 0);
 
             const elQtyFisik = document.getElementById('adm-total-qty-fisik');
-            const elQtySys = document.getElementById('adm-total-qty-sys');
             if (elQtyFisik) elQtyFisik.innerText = totalQtyFisik.toLocaleString('id-ID');
-            if (elQtySys) elQtySys.innerText = totalQtySys.toLocaleString('id-ID');
 
-            const listSelisih = localHistorySO.filter(i => (parseFloat(i.selisih) || 0) !== 0);
-            const listOver = localHistorySO.filter(i => (parseFloat(i.selisih) || 0) > 0);
-            const listShort = localHistorySO.filter(i => (parseFloat(i.selisih) || 0) < 0);
-
-            const elSelisih = document.getElementById('adm-count-selisih');
-            const elOver = document.getElementById('adm-count-over');
-            const elShort = document.getElementById('adm-count-short');
-
-            if (elSelisih) elSelisih.innerText = listSelisih.length;
-            if (elOver) elOver.innerText = `+${listOver.length}`;
-            if (elShort) elShort.innerText = `${listShort.length}`;
-
-            // Calculation of Nominal Selisih Rp
-            const totalNilaiSelisihRp = localHistorySO.reduce((acc, curr) => {
-                const price = parseFloat(curr.harga_cash) || parseFloat(curr.harga_beli) || 0;
-                return acc + ((parseFloat(curr.selisih) || 0) * price);
-            }, 0);
-
-            const elNilaiRp = document.getElementById('adm-nilai-selisih-rp');
-            if (elNilaiRp) {
-                const prefix = totalNilaiSelisihRp >= 0 ? 'Rp ' : '-Rp ';
-                elNilaiRp.innerText = prefix + Math.abs(totalNilaiSelisihRp).toLocaleString('id-ID');
-                if (totalNilaiSelisihRp < 0) {
-                    elNilaiRp.className = "text-lg font-black text-rose-900";
-                } else if (totalNilaiSelisihRp > 0) {
-                    elNilaiRp.className = "text-lg font-black text-emerald-800";
-                } else {
-                    elNilaiRp.className = "text-lg font-black text-slate-800";
-                }
-            }
-
-            // Populate Officer Filter
             const filterOfficerSelect = document.getElementById('adm-filter-officer');
             if (filterOfficerSelect) {
                 const currentVal = filterOfficerSelect.value;
@@ -1030,17 +885,10 @@ function doPost(e) {
                 });
             }
 
-            // Apply Filters to Audit List
             const filterOfficerVal = filterOfficerSelect ? filterOfficerSelect.value : '';
-            const filterStatusSelect = document.getElementById('adm-filter-status');
-            const filterStatusVal = filterStatusSelect ? filterStatusSelect.value : '';
 
             let filteredList = localHistorySO.filter(item => {
-                const diff = parseFloat(item.selisih) || 0;
                 if (filterOfficerVal && item.petugas !== filterOfficerVal) return false;
-                if (filterStatusVal === 'Sesuai' && diff !== 0) return false;
-                if (filterStatusVal === 'Lebih' && diff <= 0) return false;
-                if (filterStatusVal === 'Kurang' && diff >= 0) return false;
                 return true;
             });
 
@@ -1053,7 +901,6 @@ function doPost(e) {
                 }
             }
 
-            // Render Completed Racks
             const rackCountEl = document.getElementById('adm-rack-count');
             const racksContainer = document.getElementById('adm-completed-racks-list');
             if (rackCountEl) rackCountEl.innerText = completedRacks.length;
@@ -1124,16 +971,12 @@ function doPost(e) {
                 gain.connect(audioCtx.destination);
                 osc.start();
                 osc.stop(audioCtx.currentTime + (duration / 1000));
-            } catch (e) {
-                console.log("Audio not supported or blocked", e);
-            }
+            } catch (e) {}
         }
 
         function triggerMobileHaptic(pattern = [50]) {
             if (navigator.vibrate) {
-                try {
-                    navigator.vibrate(pattern);
-                } catch(e) {}
+                try { navigator.vibrate(pattern); } catch(e) {}
             }
         }
 
@@ -1203,15 +1046,16 @@ function doPost(e) {
             return '';
         }
 
-        function fetchGSheetJSONP(sheetId, sheetName) {
+        // FETCH GSHEET SINGLE PAGE VIA JSONP
+        function fetchGSheetPageJSONP(sheetId, sheetName, offset = 0, limit = 5000) {
             return new Promise((resolve, reject) => {
                 const callbackName = 'gsheet_cb_' + Math.random().toString(36).substring(2, 10);
                 const script = document.createElement('script');
                 
                 const timeout = setTimeout(() => {
                     cleanup();
-                    reject(new Error(`Timeout memuat Sheet '${sheetName || 'Utama'}'.`));
-                }, 10000);
+                    reject(new Error(`Timeout memuat Sheet '${sheetName || 'Utama'}' pada offset ${offset}.`));
+                }, 15000);
 
                 function cleanup() {
                     clearTimeout(timeout);
@@ -1221,21 +1065,8 @@ function doPost(e) {
 
                 window[callbackName] = function(data) {
                     cleanup();
-                    if (!data) {
-                        reject(new Error(`Respon kosong dari Sheet '${sheetName}'`));
-                        return;
-                    }
-
-                    if (data.status === 'error') {
-                        const detailErr = (data.errors && data.errors[0] && data.errors[0].detailed_message) 
-                            ? data.errors[0].detailed_message 
-                            : `Akses ditolak ke Sheet '${sheetName}'. Pastikan Spreadsheet di-set 'Anyone with link'.`;
-                        reject(new Error(detailErr));
-                        return;
-                    }
-
-                    if (!data.table) {
-                        reject(new Error(`Format data Sheet '${sheetName}' tidak dikenali`));
+                    if (!data || !data.table) {
+                        resolve([]);
                         return;
                     }
 
@@ -1245,7 +1076,7 @@ function doPost(e) {
                     const hasValidLabels = cols.some(c => c !== '');
                     let startIndex = 0;
 
-                    if (!hasValidLabels && rawRows.length > 0) {
+                    if (!hasValidLabels && rawRows.length > 0 && offset === 0) {
                         const headerRow = rawRows[0];
                         cols = (headerRow.c || []).map((cell, idx) => {
                             let val = cell ? (cell.f !== undefined && cell.f !== null ? cell.f : (cell.v !== undefined && cell.v !== null ? cell.v : '')) : '';
@@ -1280,7 +1111,8 @@ function doPost(e) {
                     resolve(parsedRows);
                 };
 
-                let gvizUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=responseHandler:${callbackName}`;
+                let queryStr = `select * limit ${limit} offset ${offset}`;
+                let gvizUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=responseHandler:${callbackName}&tq=${encodeURIComponent(queryStr)}`;
                 if (sheetName) {
                     gvizUrl += `&sheet=${encodeURIComponent(sheetName)}`;
                 }
@@ -1288,11 +1120,41 @@ function doPost(e) {
                 script.src = gvizUrl;
                 script.onerror = function() {
                     cleanup();
-                    reject(new Error(`Gagal memuat data dari Google Sheets. Pastikan Spreadsheet dapat diakses publik.`));
+                    reject(new Error(`Gagal memuat data dari Google Sheets offset ${offset}.`));
                 };
 
                 document.body.appendChild(script);
             });
+        }
+
+        // PAGINATED FETCH ALL ROWS (SUPPORT 70,000+ SKU)
+        async function fetchGSheetAllRows(sheetId, sheetName, progressCallback) {
+            let allRows = [];
+            let offset = 0;
+            const limit = 5000;
+            let hasMore = true;
+
+            while (hasMore) {
+                try {
+                    const rowsChunk = await fetchGSheetPageJSONP(sheetId, sheetName, offset, limit);
+                    if (!rowsChunk || rowsChunk.length === 0) {
+                        hasMore = false;
+                    } else {
+                        allRows = allRows.concat(rowsChunk);
+                        offset += limit;
+                        if (progressCallback) progressCallback(allRows.length);
+
+                        if (rowsChunk.length < limit) {
+                            hasMore = false;
+                        }
+                    }
+                } catch (err) {
+                    console.warn(`Hentikan pagination pada offset ${offset}:`, err);
+                    hasMore = false;
+                }
+            }
+
+            return allRows;
         }
 
         async function fetchMasterData() {
@@ -1303,17 +1165,15 @@ function doPost(e) {
             if (iconSync) iconSync.classList.add('fa-spin');
 
             try {
-                // 1. Coba ambil hitung total dari Supabase jika terkoneksi
                 if (supabaseClient) {
                     const { count, error } = await supabaseClient.from('products').select('*', { count: 'exact', head: true });
                     if (!error && count > 0) {
                         updateSkuHeaderCount(count);
                         showToast(`Koneksi Supabase DB Aktif: ${count.toLocaleString('id-ID')} SKU Siap!`, "success");
                         
-                        // Ambil daftar petugas dari GSheet/Supabase
                         if (sheetId) {
                             try {
-                                const officerData = await fetchGSheetJSONP(sheetId, "Petugas");
+                                const officerData = await fetchGSheetPageJSONP(sheetId, "Petugas", 0, 500);
                                 if (officerData && officerData.length > 0) {
                                     OFFICER_LIST = officerData;
                                     populateOfficerDropdown();
@@ -1324,18 +1184,15 @@ function doPost(e) {
                     }
                 }
 
-                // 2. Fallback ke Google Sheets
                 if (!sheetId) {
                     showToast("URL Google Spreadsheet tidak valid & Supabase tidak terhubung!", "error");
                     return;
                 }
 
-                let masterData = [];
-                try {
-                    masterData = await fetchGSheetJSONP(sheetId, "Master Item");
-                } catch (e1) {
-                    masterData = await fetchGSheetJSONP(sheetId, "");
-                }
+                showToast("Memuat Master Item dari Google Sheet...", "info");
+                let masterData = await fetchGSheetAllRows(sheetId, "Master Item", (currentTotal) => {
+                    updateSkuHeaderCount(currentTotal);
+                });
 
                 if (masterData && masterData.length > 0) {
                     MASTER_PRODUCTS = masterData;
@@ -1343,14 +1200,13 @@ function doPost(e) {
                 }
 
                 try {
-                    const officerData = await fetchGSheetJSONP(sheetId, "Petugas");
+                    const officerData = await fetchGSheetPageJSONP(sheetId, "Petugas", 0, 500);
                     if (officerData && officerData.length > 0) {
                         OFFICER_LIST = officerData;
                         populateOfficerDropdown();
                     }
                 } catch (offErr) {}
 
-                // Tarik histori SO terbaru dari Supabase jika terhubung
                 if (supabaseClient) {
                     try {
                         const { data: soLogs } = await supabaseClient
@@ -1365,13 +1221,11 @@ function doPost(e) {
                             renderHistoryList();
                             renderAdminDashboard();
                         }
-                    } catch (spSoErr) {
-                        console.warn("Gagal menarik SO logs Supabase:", spSoErr);
-                    }
+                    } catch (spSoErr) {}
                 }
 
                 if (timeBadge) timeBadge.innerText = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-                showToast(`GSheet Sync Sukses: ${MASTER_PRODUCTS.length} SKU dimuat`, "success");
+                showToast(`GSheet Sync Sukses: ${MASTER_PRODUCTS.length.toLocaleString('id-ID')} SKU dimuat`, "success");
 
             } catch (err) {
                 console.error("Fetch Data Error:", err);
@@ -1393,20 +1247,36 @@ function doPost(e) {
                 return;
             }
 
-            showToast("Membaca Master Item dari Google Sheets...", "info");
+            const progressModal = document.getElementById('modal-sync-progress');
+            const progressTitle = document.getElementById('sync-progress-title');
+            const progressSub = document.getElementById('sync-progress-sub');
+            const progressCounts = document.getElementById('sync-progress-counts');
+            const progressPercent = document.getElementById('sync-progress-percent');
+            const progressBarFill = document.getElementById('sync-progress-bar-fill');
+
+            if (progressModal) progressModal.classList.remove('hidden');
+            if (progressTitle) progressTitle.innerText = "Membaca 70k SKU dari GSheet...";
+            if (progressSub) progressSub.innerText = "Mengambil data bertahap (Pagination)...";
+
             try {
-                let masterData = await fetchGSheetJSONP(sheetId, "Master Item");
+                let masterData = await fetchGSheetAllRows(sheetId, "Master Item", (count) => {
+                    if (progressCounts) progressCounts.innerText = `${count.toLocaleString('id-ID')} SKU Terbaca`;
+                });
+
                 if (!masterData || masterData.length === 0) {
+                    if (progressModal) progressModal.classList.add('hidden');
                     showToast("Master Item Google Sheet kosong!", "error");
                     return;
                 }
 
-                showToast(`Mengunggah ${masterData.length} SKU ke Supabase DB...`, "info");
+                const totalItems = masterData.length;
+                if (progressTitle) progressTitle.innerText = "Mengunggah SKU ke Supabase DB...";
+                if (progressSub) progressSub.innerText = `Menyimpan ${totalItems.toLocaleString('id-ID')} SKU (Batch 500)...`;
 
                 const batchSize = 500;
                 let inserted = 0;
 
-                for (let i = 0; i < masterData.length; i += batchSize) {
+                for (let i = 0; i < totalItems; i += batchSize) {
                     const chunk = masterData.slice(i, i + batchSize).map(p => ({
                         kode_stock: getColVal(p, ['kode stock', 'kode_stock', 'kodestock', 'sku', 'kode']),
                         original_code: getColVal(p, ['original code', 'original_code', 'originalcode', 'barcode']) || null,
@@ -1417,18 +1287,27 @@ function doPost(e) {
                         harga_cash: parseFloat(getColVal(p, ['harga cash', 'harga_cash', 'hargacash', 'harga jual'])) || 0
                     })).filter(x => x.kode_stock);
 
-                    const { error } = await supabaseClient.from('products').upsert(chunk, { onConflict: 'kode_stock' });
-                    if (error) {
-                        console.error("Batch error:", error);
-                    } else {
-                        inserted += chunk.length;
+                    if (chunk.length > 0) {
+                        const { error } = await supabaseClient.from('products').upsert(chunk, { onConflict: 'kode_stock' });
+                        if (error) {
+                            console.error("Batch error pada indeks", i, error);
+                        } else {
+                            inserted += chunk.length;
+                        }
                     }
+
+                    const pct = Math.min(100, Math.round((inserted / totalItems) * 100));
+                    if (progressBarFill) progressBarFill.style.width = `${pct}%`;
+                    if (progressPercent) progressPercent.innerText = `${pct}%`;
+                    if (progressCounts) progressCounts.innerText = `${inserted.toLocaleString('id-ID')} / ${totalItems.toLocaleString('id-ID')} SKU`;
                 }
 
-                showToast(`Berhasil push ${inserted} SKU ke Supabase Database!`, "success");
+                if (progressModal) progressModal.classList.add('hidden');
+                showToast(`✓ Selesai! Berhasil sinkronisasi ${inserted.toLocaleString('id-ID')} SKU ke Supabase DB!`, "success");
                 updateSkuHeaderCount(inserted);
 
             } catch (e) {
+                if (progressModal) progressModal.classList.add('hidden');
                 showToast("Gagal sync ke Supabase: " + e.message, "error");
             }
         }
@@ -1589,7 +1468,6 @@ function doPost(e) {
 
             let foundProduct = null;
 
-            // 1. CARI DI SUPABASE DATABASE (Direct Query Super Cepat)
             if (supabaseClient) {
                 try {
                     const cleanQuery = query.trim().replace(/"/g, '""');
@@ -1605,10 +1483,7 @@ function doPost(e) {
                             kode_stock: p.kode_stock,
                             original_code: p.original_code || '-',
                             nama_barang: p.nama_barang || 'Barang',
-                            family: p.family || '-',
-                            qty_system: parseFloat(p.qty_akhir) || 0,
-                            harga_beli: parseFloat(p.harga_beli) || 0,
-                            harga_cash: parseFloat(p.harga_cash) || 0
+                            family: p.family || '-'
                         };
                     }
                 } catch (e) {
@@ -1616,7 +1491,6 @@ function doPost(e) {
                 }
             }
 
-            // 2. FALLBACK CARI DI MEMORI LOKAL GSHEET
             if (!foundProduct && MASTER_PRODUCTS.length > 0) {
                 const found = MASTER_PRODUCTS.find(p => {
                     const kStock = String(getColVal(p, ['kode stock', 'kode_stock', 'kodestock', 'sku', 'kode'])).toLowerCase();
@@ -1631,10 +1505,7 @@ function doPost(e) {
                         kode_stock: getColVal(found, ['kode stock', 'kode_stock', 'kodestock', 'sku', 'kode']) || 'SKU-UNKNOWN',
                         original_code: getColVal(found, ['original code', 'original_code', 'originalcode', 'barcode']) || '-',
                         nama_barang: getColVal(found, ['nama barang', 'nama_barang', 'namabarang', 'nama']) || 'Tanpa Nama',
-                        family: getColVal(found, ['family', 'kategori', 'fam']) || '-',
-                        qty_system: parseFloat(getColVal(found, ['qty akhir', 'qty_akhir', 'qty system', 'stok'])) || 0,
-                        harga_beli: parseFloat(getColVal(found, ['harga beli akhir', 'harga_beli_akhir', 'harga beli'])) || 0,
-                        harga_cash: parseFloat(getColVal(found, ['harga cash', 'harga_cash', 'hargacash', 'harga jual'])) || 0
+                        family: getColVal(found, ['family', 'kategori', 'fam']) || '-'
                     };
                 }
             }
@@ -1657,22 +1528,14 @@ function doPost(e) {
             const resOrig = document.getElementById('res-product-orig');
             const resFam = document.getElementById('res-product-family');
             const resName = document.getElementById('res-product-name');
-            const resQtySys = document.getElementById('res-qty-system');
-            const resBeli = document.getElementById('res-harga-beli');
-            const resCash = document.getElementById('res-harga-cash');
             const inputQty = document.getElementById('input-qty');
 
             if (resCode) resCode.innerText = p.kode_stock;
             if (resOrig) resOrig.innerText = p.original_code;
             if (resFam) resFam.innerText = p.family;
             if (resName) resName.innerText = p.nama_barang;
-            if (resQtySys) resQtySys.innerText = p.qty_system;
-            if (resBeli) resBeli.innerText = "Rp " + (parseFloat(p.harga_beli) || 0).toLocaleString('id-ID');
-            if (resCash) resCash.innerText = "Rp " + (parseFloat(p.harga_cash) || 0).toLocaleString('id-ID');
 
             if (inputQty) inputQty.value = 1;
-
-            calculateLiveVariance();
 
             if (sec) {
                 sec.classList.remove('hidden');
@@ -1694,28 +1557,6 @@ function doPost(e) {
             currentVal += delta;
             if (currentVal < 0) currentVal = 0;
             inputQty.value = currentVal;
-            calculateLiveVariance();
-        }
-
-        function calculateLiveVariance() {
-            if (!currentProduct) return;
-            const inputQty = document.getElementById('input-qty');
-            const badge = document.getElementById('variance-badge');
-            if (!inputQty || !badge) return;
-
-            const qtyFisik = parseFloat(inputQty.value) || 0;
-            const diff = qtyFisik - currentProduct.qty_system;
-
-            if (diff === 0) {
-                badge.className = "px-2 py-0.5 rounded-md font-bold text-[10px] bg-emerald-100 text-emerald-800";
-                badge.innerText = "Selisih: 0 (Sesuai)";
-            } else if (diff > 0) {
-                badge.className = "px-2 py-0.5 rounded-md font-bold text-[10px] bg-amber-100 text-amber-900";
-                badge.innerText = `Selisih: +${diff} (Lebih)`;
-            } else {
-                badge.className = "px-2 py-0.5 rounded-md font-bold text-[10px] bg-rose-100 text-rose-800";
-                badge.innerText = `Selisih: ${diff} (Kurang)`;
-            }
         }
 
         function resetProductSelection() {
@@ -1816,11 +1657,6 @@ function doPost(e) {
                 lockSession();
             }
 
-            const selisih = qtyFisik - currentProduct.qty_system;
-            let statusStr = "Sesuai";
-            if (selisih > 0) statusStr = "Lebih/Over";
-            if (selisih < 0) statusStr = "Kurang/Shortage";
-
             const opnameRecord = {
                 id: 'SO-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
                 timestamp: new Date().toISOString(),
@@ -1831,13 +1667,7 @@ function doPost(e) {
                 original_code: currentProduct.original_code,
                 nama_barang: currentProduct.nama_barang,
                 family: currentProduct.family,
-                qty_system: currentProduct.qty_system,
                 qty_fisik: qtyFisik,
-                selisih: selisih,
-                harga_beli: parseFloat(currentProduct.harga_beli) || 0,
-                harga_cash: parseFloat(currentProduct.harga_cash) || 0,
-                total_nilai_cash: qtyFisik * (parseFloat(currentProduct.harga_cash) || 0),
-                status: statusStr,
                 synced_supabase: false,
                 synced_gsheet: false
             };
@@ -1845,7 +1675,6 @@ function doPost(e) {
             const btnSave = document.getElementById('btn-save-opname');
             if (btnSave) btnSave.disabled = true;
 
-            // 1. DUAL SAVE: SIMPAN KE SUPABASE DB
             if (supabaseClient) {
                 try {
                     const { error } = await supabaseClient.from('stock_opname_logs').insert([opnameRecord]);
@@ -1857,7 +1686,6 @@ function doPost(e) {
                 }
             }
 
-            // 2. DUAL SAVE: PUSH KE GOOGLE SHEETS WEBHOOK
             const isGSheetPushed = await postToWebhook(opnameRecord);
             opnameRecord.synced_gsheet = isGSheetPushed;
 
@@ -1874,7 +1702,7 @@ function doPost(e) {
             if (opnameRecord.synced_gsheet) syncMsg.push("Google Sheet ✓");
 
             if (syncMsg.length > 0) {
-                showToast(`✓ Hasil SO [${currentProduct.kode_stock}] tersimpan (${syncMsg.join(', ')})`, "success");
+                showToast(`✓ SO [${currentProduct.kode_stock}] tersimpan (${syncMsg.join(', ')})`, "success");
             } else {
                 showToast(`Tersimpan lokal di HP (Offline Mode).`, "info");
             }
@@ -2008,35 +1836,11 @@ function doPost(e) {
             }
         }
 
-        function switchHistoryTab(tab) {
-            const btnSo = document.getElementById('tab-btn-so');
-            const btnRevisi = document.getElementById('tab-btn-revisi');
-            const contentSo = document.getElementById('tab-content-so');
-            const contentRevisi = document.getElementById('tab-content-revisi');
-
-            if (tab === 'so') {
-                if (btnSo) btnSo.className = "flex-1 py-2 text-center border-b-2 border-indigo-600 text-indigo-700 bg-indigo-50/50 rounded-t-xl font-bold";
-                if (btnRevisi) btnRevisi.className = "flex-1 py-2 text-center border-b-2 border-transparent text-slate-500 hover:text-slate-800 font-bold";
-                if (contentSo) contentSo.classList.remove('hidden');
-                if (contentRevisi) contentRevisi.classList.add('hidden');
-            } else {
-                if (btnRevisi) btnRevisi.className = "flex-1 py-2 text-center border-b-2 border-indigo-600 text-indigo-700 bg-indigo-50/50 rounded-t-xl font-bold";
-                if (btnSo) btnSo.className = "flex-1 py-2 text-center border-b-2 border-transparent text-slate-500 hover:text-slate-800 font-bold";
-                if (contentRevisi) contentRevisi.classList.remove('hidden');
-                if (contentSo) contentSo.classList.add('hidden');
-            }
-        }
-
         function renderHistoryList() {
             const containerSO = document.getElementById('mobile-history-container');
-            const containerRevisi = document.getElementById('mobile-revisi-container');
             const countBadgeSO = document.getElementById('count-so-badge');
-            const countBadgeRevisi = document.getElementById('count-revisi-badge');
 
             if (countBadgeSO) countBadgeSO.innerText = localHistorySO.length;
-            
-            const listRevisi = localHistorySO.filter(item => (parseFloat(item.selisih) || 0) !== 0);
-            if (countBadgeRevisi) countBadgeRevisi.innerText = listRevisi.length;
 
             if (containerSO) {
                 if (localHistorySO.length === 0) {
@@ -2050,26 +1854,11 @@ function doPost(e) {
                     containerSO.innerHTML = localHistorySO.map(item => createHistoryCardHTML(item)).join('');
                 }
             }
-
-            if (containerRevisi) {
-                if (listRevisi.length === 0) {
-                    containerRevisi.innerHTML = `
-                        <div class="py-8 text-center text-slate-400 text-xs">
-                            Tidak ada barang selisih saat ini.
-                        </div>
-                    `;
-                } else {
-                    containerRevisi.innerHTML = listRevisi.map(item => createHistoryCardHTML(item)).join('');
-                }
-            }
         }
 
         function createHistoryCardHTML(item) {
             const timeStr = new Date(item.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-            const selisihNum = parseFloat(item.selisih) || 0;
-            let badgeClass = "bg-emerald-100 text-emerald-800";
-            if (selisihNum > 0) badgeClass = "bg-amber-100 text-amber-900";
-            if (selisihNum < 0) badgeClass = "bg-rose-100 text-rose-800";
+            const qtyVal = item.qty_fisik !== undefined ? item.qty_fisik : (item.qty !== undefined ? item.qty : 0);
 
             const spBadge = item.synced_supabase
                 ? `<span class="bg-emerald-600 text-white text-[8px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5"><i class="fa-solid fa-database"></i> DB</span>`
@@ -2084,8 +1873,8 @@ function doPost(e) {
                     <div class="flex justify-between items-center text-[10px]">
                         <div class="flex items-center space-x-1.5">
                             <span class="font-black bg-indigo-700 text-white px-1.5 py-0.5 rounded">${item.rak}</span>
-                            <span class="font-bold text-slate-600">${item.petugas}</span>
-                            <span class="text-slate-400">(${timeStr})</span>
+                            <span class="font-bold text-slate-700">${item.petugas}</span>
+                            <span class="text-slate-400">(${item.peran || 'Checker'} • ${timeStr})</span>
                         </div>
                         <div class="flex items-center space-x-1">
                             ${spBadge}
@@ -2101,11 +1890,13 @@ function doPost(e) {
                     </div>
 
                     <div class="flex justify-between items-center text-[10px] pt-1 border-t border-slate-200/60">
-                        <div class="font-mono text-slate-500 font-bold">${item.kode_stock}</div>
-                        <div class="flex space-x-2">
-                            <span>Sys: <strong>${item.qty_system}</strong></span>
-                            <span>Fisik: <strong class="text-indigo-700 font-black">${item.qty_fisik}</strong></span>
-                            <span class="px-1.5 py-0.5 rounded font-black ${badgeClass}">Selisih: ${selisihNum > 0 ? '+' + selisihNum : selisihNum}</span>
+                        <div class="flex items-center space-x-1 font-mono text-slate-500 font-bold">
+                            <span>Item: <strong>${item.kode_stock}</strong></span>
+                            ${item.original_code ? `<span class="text-slate-400">(${item.original_code})</span>` : ''}
+                        </div>
+                        <div class="flex space-x-2 items-center">
+                            <span class="bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded font-bold text-[9px]">${item.family || '-'}</span>
+                            <span class="text-indigo-900 font-black bg-indigo-100 px-2 py-0.5 rounded">Qty: ${qtyVal}</span>
                         </div>
                     </div>
                 </div>
@@ -2132,7 +1923,7 @@ function doPost(e) {
 
             const currentRackItems = localHistorySO.filter(item => item.rak === rackName);
             const totalSku = currentRackItems.length;
-            const totalQty = currentRackItems.reduce((acc, curr) => acc + (parseFloat(curr.qty_fisik) || 0), 0);
+            const totalQty = currentRackItems.reduce((acc, curr) => acc + (parseFloat(curr.qty_fisik !== undefined ? curr.qty_fisik : curr.qty) || 0), 0);
 
             const modal = document.getElementById('modal-complete-rack');
             const nameEl = document.getElementById('rack-summary-name');
@@ -2161,7 +1952,7 @@ function doPost(e) {
 
             const currentRackItems = localHistorySO.filter(item => item.rak === rackName);
             const totalSku = currentRackItems.length;
-            const totalQty = currentRackItems.reduce((acc, curr) => acc + (parseFloat(curr.qty_fisik) || 0), 0);
+            const totalQty = currentRackItems.reduce((acc, curr) => acc + (parseFloat(curr.qty_fisik !== undefined ? curr.qty_fisik : curr.qty) || 0), 0);
 
             const rackRecord = {
                 id: 'RACK-' + Date.now(),
@@ -2201,7 +1992,7 @@ function doPost(e) {
 - Rak: ${nameEl ? nameEl.innerText : ''}
 - Petugas: ${officerEl ? officerEl.innerText : ''}
 - Total SKU: ${skuEl ? skuEl.innerText : 0}
-- Total Qty Fisik: ${qtyEl ? qtyEl.innerText : 0}
+- Total Qty Terhitung: ${qtyEl ? qtyEl.innerText : 0}
 - Catatan: ${noteEl && noteEl.value ? noteEl.value : '-'}
 - Waktu: ${new Date().toLocaleString('id-ID')}`;
 
@@ -2361,42 +2152,28 @@ function doPost(e) {
         }
 
         function exportDataToExcel(type = 'SO') {
-            let dataToExport = [];
-            if (type === 'SO') {
-                dataToExport = localHistorySO;
-            } else {
-                dataToExport = localHistorySO.filter(i => (parseFloat(i.selisih) || 0) !== 0);
-            }
-
-            if (dataToExport.length === 0) {
+            if (localHistorySO.length === 0) {
                 showToast("Tidak ada data untuk diexport!", "error");
                 return;
             }
 
-            const rows = dataToExport.map(i => ({
+            const rows = localHistorySO.map(i => ({
+                "ID SO": i.id,
                 "Waktu": new Date(i.timestamp).toLocaleString('id-ID'),
                 "Petugas": i.petugas,
-                "Peran": i.peran,
+                "Peran Petugas": i.peran || '-',
                 "Rak": i.rak,
-                "Kode Stock": i.kode_stock,
-                "Original Code": i.original_code,
-                "Nama Barang": i.nama_barang,
-                "Family": i.family,
-                "Qty System": i.qty_system,
-                "Qty Fisik": i.qty_fisik,
-                "Selisih": i.selisih,
-                "Harga Beli": i.harga_beli,
-                "Harga Cash": i.harga_cash,
-                "Total Cash Fisik": i.total_nilai_cash,
-                "Status": i.status,
-                "Supabase Sync": i.synced_supabase ? "Sudah" : "Belum",
-                "GSheet Sync": i.synced_gsheet ? "Sudah" : "Belum"
+                "Kode Item": i.kode_stock,
+                "Kode Original": i.original_code || '-',
+                "Nama Produk": i.nama_barang,
+                "Family": i.family || '-',
+                "Qty": i.qty_fisik !== undefined ? i.qty_fisik : (i.qty !== undefined ? i.qty : 0)
             }));
 
             const ws = XLSX.utils.json_to_sheet(rows);
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, type === 'SO' ? "Stok Opname" : "Revisi SO");
-            XLSX.writeFile(wb, `Stock_Opname_${type}_${new Date().toISOString().slice(0,10)}.xlsx`);
+            XLSX.utils.book_append_sheet(wb, ws, "Stok Opname");
+            XLSX.writeFile(wb, `Stock_Opname_${new Date().toISOString().slice(0,10)}.xlsx`);
             showToast("File Excel berhasil diunduh!", "success");
         }
     </script>
