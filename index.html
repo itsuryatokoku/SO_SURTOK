@@ -673,7 +673,7 @@ ALTER TABLE public.stock_opname_logs DISABLE ROW LEVEL SECURITY;
                     <pre id="appscript-code-block" class="whitespace-pre-wrap">
 function doPost(e) {
   var lock = LockService.getScriptLock();
-  var success = lock.tryLock(10000); // Tunggu maksimal 10 detik untuk mengunci proses antrean
+  var success = lock.tryLock(15000); // Wait max 15s
 
   if (!success) {
     return ContentService.createTextOutput(JSON.stringify({"result": "error", "message": "Lock timeout"}))
@@ -682,31 +682,34 @@ function doPost(e) {
 
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var data = JSON.parse(e.postData.contents);
-    var record = data.record ? data.record : data;
-    var id = record.id ? String(record.id).trim() : '';
-
-    // Catat ke Sheet Hasil SO
     var sheetSO = ss.getSheetByName("Hasil SO");
     if (!sheetSO) {
       sheetSO = ss.insertSheet("Hasil SO");
       sheetSO.appendRow(["ID SO", "Time", "Petugas", "peran Petugas", "Rak", "Kode Item", "Kode Original", "Nama Produk", "Family", "qty"]);
       SpreadsheetApp.flush();
     }
+
+    var contents = (e && e.postData && e.postData.contents) ? e.postData.contents : null;
+    if (!contents) {
+      return ContentService.createTextOutput(JSON.stringify({"result": "error", "message": "No payload"}))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    var data = JSON.parse(contents);
+    var record = data.record ? data.record : data;
     
-    // Cek Deduplikasi berbasis ID SO
-    if (id !== '') {
-      var lastRow = sheetSO.getLastRow();
-      if (lastRow > 1) {
-        var existingIds = sheetSO.getRange(2, 1, lastRow - 1, 1).getValues();
-        for (var i = 0; i < existingIds.length; i++) {
-          var cleanExisting = String(existingIds[i][0]).replace(/^'/, '').trim();
-          var cleanNew = id.replace(/^'/, '').trim();
-          if (cleanExisting === cleanNew) {
-            return ContentService.createTextOutput(JSON.stringify({"result": "skipped_duplicate", "id": id}))
-              .setMimeType(ContentService.MimeType.JSON);
-          }
-        }
+    var id = "";
+    if (record.id !== undefined && record.id !== null) {
+      id = String(record.id).replace(/^'/, '').trim();
+    }
+
+    // Deduplikasi berbasis ID SO menggunakan TextFinder di Kolom A
+    if (id !== "") {
+      var finder = sheetSO.getRange("A:A").createTextFinder(id).matchEntireCell(true);
+      var matches = finder.findAll();
+      if (matches && matches.length > 0) {
+        return ContentService.createTextOutput(JSON.stringify({"result": "skipped_duplicate", "id": id}))
+          .setMimeType(ContentService.MimeType.JSON);
       }
     }
 
@@ -725,7 +728,7 @@ function doPost(e) {
       qtyVal
     ]);
 
-    SpreadsheetApp.flush(); // PAKSA PENULISAN LANGSUNG KE SHEET SEBELUM LOCK DILEPAS
+    SpreadsheetApp.flush(); // Tulis langsung ke sheet sebelum lock dilepas
 
     return ContentService.createTextOutput(JSON.stringify({"result": "success", "id": id}))
       .setMimeType(ContentService.MimeType.JSON);
@@ -756,6 +759,7 @@ function doPost(e) {
 
         let supabaseClient = null;
         let autoSyncTimer = null;
+        let isSavingOpname = false; // FLAG MENCEGAH DOUBLE CLICK
 
         // MASTER MEMORY DATA
         let MASTER_PRODUCTS = []; 
@@ -1647,90 +1651,101 @@ function doPost(e) {
         }
 
         async function saveStockOpname() {
+            // ANTI DOUBLE CLICK GUARD
+            if (isSavingOpname) return;
             if (!currentProduct) {
                 showToast("Tidak ada produk yang dipilih!", "error");
                 return;
             }
 
-            const officerName = getSelectedOfficerName();
-            const rackEl = document.getElementById('input-rack-name');
-            const roleEl = document.getElementById('select-role');
-            const qtyInput = document.getElementById('input-qty');
-
-            const rackName = rackEl ? rackEl.value.trim().toUpperCase() : '';
-            const role = roleEl ? roleEl.value : 'Checker';
-            const qtyFisik = parseFloat(qtyInput ? qtyInput.value : 1) || 0;
-
-            if (!officerName || !rackName) {
-                showToast("Lengkapi Nama Petugas & Nama Rak terlebih dahulu!", "error");
-                return;
-            }
-
-            if (!isSessionLocked) {
-                lockSession();
-            }
-
-            const opnameRecord = {
-                id: 'SO-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
-                timestamp: new Date().toISOString(),
-                petugas: officerName,
-                peran: role,
-                rak: rackName,
-                kode_stock: currentProduct.kode_stock,
-                original_code: currentProduct.original_code,
-                nama_barang: currentProduct.nama_barang,
-                family: currentProduct.family,
-                qty_fisik: qtyFisik,
-                synced_supabase: false,
-                synced_gsheet: false
-            };
-
             const btnSave = document.getElementById('btn-save-opname');
-            if (btnSave) btnSave.disabled = true;
+            isSavingOpname = true;
+            if (btnSave) {
+                btnSave.disabled = true;
+                btnSave.classList.add('opacity-50', 'cursor-not-allowed');
+            }
 
-            let isSupabaseOk = false;
-            if (supabaseClient) {
-                try {
-                    const { error } = await supabaseClient.from('stock_opname_logs').insert([opnameRecord]);
-                    if (!error) {
-                        opnameRecord.synced_supabase = true;
-                        isSupabaseOk = true;
+            try {
+                const officerName = getSelectedOfficerName();
+                const rackEl = document.getElementById('input-rack-name');
+                const roleEl = document.getElementById('select-role');
+                const qtyInput = document.getElementById('input-qty');
+
+                const rackName = rackEl ? rackEl.value.trim().toUpperCase() : '';
+                const role = roleEl ? roleEl.value : 'Checker';
+                const qtyFisik = parseFloat(qtyInput ? qtyInput.value : 1) || 0;
+
+                if (!officerName || !rackName) {
+                    showToast("Lengkapi Nama Petugas & Nama Rak terlebih dahulu!", "error");
+                    return;
+                }
+
+                if (!isSessionLocked) {
+                    lockSession();
+                }
+
+                const opnameRecord = {
+                    id: 'SO-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+                    timestamp: new Date().toISOString(),
+                    petugas: officerName,
+                    peran: role,
+                    rak: rackName,
+                    kode_stock: currentProduct.kode_stock,
+                    original_code: currentProduct.original_code,
+                    nama_barang: currentProduct.nama_barang,
+                    family: currentProduct.family,
+                    qty_fisik: qtyFisik,
+                    synced_supabase: false,
+                    synced_gsheet: false
+                };
+
+                let isSupabaseOk = false;
+                if (supabaseClient) {
+                    try {
+                        const { error } = await supabaseClient.from('stock_opname_logs').insert([opnameRecord]);
+                        if (!error) {
+                            opnameRecord.synced_supabase = true;
+                            isSupabaseOk = true;
+                        }
+                    } catch (spErr) {
+                        console.warn("Supabase insert error:", spErr);
                     }
-                } catch (spErr) {
-                    console.warn("Supabase insert error:", spErr);
+                }
+
+                // HANYA KIRIM LANGSUNG KE GSHEET WEBHOOK JIKA SUPABASE TIDAK AKTIF ATAU GAGAL
+                if (!isSupabaseOk) {
+                    const isGSheetPushed = await postToWebhook(opnameRecord);
+                    opnameRecord.synced_gsheet = isGSheetPushed;
+                } else {
+                    opnameRecord.synced_gsheet = true; // Ditangani secara otomatis oleh Supabase SQL Trigger
+                }
+
+                localHistorySO.unshift(opnameRecord);
+                localStorage.setItem('so_local_history', JSON.stringify(localHistorySO));
+
+                playBeepSound(1500, 120);
+                triggerMobileHaptic([80, 80]);
+
+                let syncMsg = [];
+                if (opnameRecord.synced_supabase) syncMsg.push("Supabase DB ✓");
+                if (opnameRecord.synced_gsheet) syncMsg.push("Google Sheet ✓");
+
+                if (syncMsg.length > 0) {
+                    showToast(`✓ SO [${currentProduct.kode_stock}] tersimpan (${syncMsg.join(', ')})`, "success");
+                } else {
+                    showToast(`Tersimpan lokal di HP (Offline Mode).`, "info");
+                }
+
+                renderHistoryList();
+                updatePendingSyncBanner();
+                resetProductSelection();
+            } finally {
+                isSavingOpname = false;
+                if (btnSave) {
+                    btnSave.disabled = false;
+                    btnSave.classList.remove('opacity-50', 'cursor-not-allowed');
                 }
             }
-
-            // HANYA KIRIM LANGSUNG KE GSHEET WEBHOOK JIKA SUPABASE TIDAK AKTIF ATAU GAGAL
-            // (Mencegah Double Request Karena SQL Trigger Supabase Juga Mengirim Ke Webhook)
-            if (!isSupabaseOk) {
-                const isGSheetPushed = await postToWebhook(opnameRecord);
-                opnameRecord.synced_gsheet = isGSheetPushed;
-            } else {
-                opnameRecord.synced_gsheet = true; // Ditangani secara otomatis oleh Supabase SQL Trigger
-            }
-
-            if (btnSave) btnSave.disabled = false;
-
-            localHistorySO.unshift(opnameRecord);
-            localStorage.setItem('so_local_history', JSON.stringify(localHistorySO));
-
-            playBeepSound(1500, 120);
-            triggerMobileHaptic([80, 80]);
-
-            let syncMsg = [];
-            if (opnameRecord.synced_supabase) syncMsg.push("Supabase DB ✓");
-            if (opnameRecord.synced_gsheet) syncMsg.push("Google Sheet ✓");
-
-            if (syncMsg.length > 0) {
-                showToast(`✓ SO [${currentProduct.kode_stock}] tersimpan (${syncMsg.join(', ')})`, "success");
-            } else {
-                showToast(`Tersimpan lokal di HP (Offline Mode).`, "info");
-            }
-
-            renderHistoryList();
-            updatePendingSyncBanner();
-            resetProductSelection();
         }
 
         async function postToWebhook(data) {
