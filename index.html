@@ -1400,8 +1400,11 @@
             if (state.selectedItem && state.selectedItem.sku) {
               await state.supabaseClient.from('products').upsert([{
                 sku: state.selectedItem.sku,
+                kode_item: state.selectedItem.sku,
                 barcode: state.selectedItem.barcode || '-',
+                kode_original: state.selectedItem.barcode || '-',
                 name: state.selectedItem.name || state.selectedItem.sku,
+                nama_item: state.selectedItem.name || state.selectedItem.sku,
                 family: state.selectedItem.family || 'GENERAL'
               }], { onConflict: 'sku' });
             }
@@ -1414,8 +1417,11 @@
               officer: logEntry.officer,
               rack: logEntry.rack,
               sku: logEntry.sku,
+              kode_item: logEntry.sku,
               barcode: logEntry.barcode,
+              kode_original: logEntry.barcode,
               name: logEntry.name,
+              nama_item: logEntry.name,
               family: logEntry.family,
               qty: logEntry.qty,
               synced_to_sheet: true
@@ -2318,15 +2324,20 @@ SET search_path TO public, extensions;
 
 CREATE TABLE IF NOT EXISTS public.products (
     sku VARCHAR(100) PRIMARY KEY,
+    kode_item VARCHAR(100),
     barcode VARCHAR(100),
+    kode_original VARCHAR(100),
     name TEXT NOT NULL,
+    nama_item TEXT,
     family VARCHAR(100) DEFAULT 'GENERAL',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_products_barcode ON public.products(barcode);
+CREATE INDEX IF NOT EXISTS idx_products_kode_original ON public.products(kode_original);
 CREATE INDEX IF NOT EXISTS idx_products_family ON public.products(family);
 CREATE INDEX IF NOT EXISTS idx_products_name ON public.products(name);
+CREATE INDEX IF NOT EXISTS idx_products_nama_item ON public.products(nama_item);
 
 CREATE TABLE IF NOT EXISTS public.stock_opname_logs (
     id VARCHAR(100) PRIMARY KEY,
@@ -2336,8 +2347,11 @@ CREATE TABLE IF NOT EXISTS public.stock_opname_logs (
     officer VARCHAR(100) NOT NULL,
     rack VARCHAR(100) NOT NULL,
     sku VARCHAR(100),
+    kode_item VARCHAR(100),
     barcode VARCHAR(100),
+    kode_original VARCHAR(100),
     name TEXT NOT NULL,
+    nama_item TEXT,
     family VARCHAR(100) DEFAULT 'GENERAL',
     qty INT DEFAULT 1,
     synced_to_sheet BOOLEAN DEFAULT FALSE,
