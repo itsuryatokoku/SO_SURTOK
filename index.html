@@ -1621,8 +1621,8 @@
 
         await dbEngine.saveItemsBatch(mockBatch);
         mockBatch.forEach(item => {
-          state.masterItemsMap.set(item.sku, item);
-          state.masterItemsMap.set(item.barcode, item);
+          if (item && item.sku) state.masterItemsMap.set(item.sku, item);
+          if (item && item.barcode) state.masterItemsMap.set(item.barcode, item);
         });
 
         this.updateMasterCountDisplay();
@@ -1674,8 +1674,17 @@
       },
 
       updateMasterCountDisplay() {
-        const count = state.masterItemsMap.size / 2;
-        document.getElementById('masterSkuCountBadge').textContent = `${Math.round(count)} SKU Cached`;
+        // Calculate unique SKU count from IndexedDB Map
+        const uniqueSkus = new Set();
+        if (state.masterItemsMap && state.masterItemsMap.size > 0) {
+          for (let [key, item] of state.masterItemsMap.entries()) {
+            if (item && item.sku) uniqueSkus.add(item.sku);
+          }
+        }
+        const badge = document.getElementById('masterSkuCountBadge');
+        if (badge) {
+          badge.textContent = `${uniqueSkus.size} SKU Cached`;
+        }
       },
 
       async postToWebhook(payload) {
@@ -1913,6 +1922,7 @@
         haptics.vibrate(20);
         const sqlCode = `-- SUPABASE POSTGRESQL DDL SCHEMA
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+SET search_path TO public, extensions;
 
 CREATE TABLE IF NOT EXISTS public.products (
     sku VARCHAR(100) PRIMARY KEY,
@@ -1921,6 +1931,10 @@ CREATE TABLE IF NOT EXISTS public.products (
     family VARCHAR(100) DEFAULT 'GENERAL',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+CREATE INDEX IF NOT EXISTS idx_products_barcode ON public.products(barcode);
+CREATE INDEX IF NOT EXISTS idx_products_family ON public.products(family);
+CREATE INDEX IF NOT EXISTS idx_products_name ON public.products(name);
 
 CREATE TABLE IF NOT EXISTS public.stock_opname_logs (
     id VARCHAR(100) PRIMARY KEY,
