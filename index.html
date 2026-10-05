@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="id" class="h-full bg-slate-950 text-slate-100 selection:bg-brand-500 selection:text-white">
+<html lang="id" class="h-full bg-slate-950 text-slate-100 selection:bg-sky-500 selection:text-white">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -21,64 +21,67 @@
               700: '#075985',
               900: '#0c4a6e',
             },
-            surtok: {
-              500: '#10b981',
-              600: '#059669',
-            },
-            audit: {
-              500: '#8b5cf6',
-              600: '#7c3aed',
+            accent: {
+              cyan: '#06b6d4',
+              emerald: '#10b981',
+              amber: '#f59e0b',
+              rose: '#f43f5e',
+              purple: '#a855f7'
             }
           },
           fontFamily: {
-            mono: ['JetBrains Mono', 'Courier New', 'monospace'],
+            mono: ['JetBrains Mono', 'Menlo', 'Courier New', 'monospace'],
             sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+          },
+          boxShadow: {
+            'glow-cyan': '0 0 20px -3px rgba(6, 182, 212, 0.4)',
+            'glow-emerald': '0 0 20px -3px rgba(16, 185, 129, 0.4)',
+            'glow-purple': '0 0 20px -3px rgba(168, 85, 247, 0.4)',
+            'glow-amber': '0 0 20px -3px rgba(245, 158, 11, 0.4)',
           }
         }
       }
     }
   </script>
 
-  <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  
-  <!-- Html5Qrcode Scanner -->
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-
-  <!-- Supabase JS Client v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
-    .pb-safe {
-      padding-bottom: max(env(safe-area-inset-bottom, 16px), 16px);
-    }
-    .pt-safe {
-      padding-top: max(env(safe-area-inset-top, 12px), 12px);
-    }
+    /* Safe area paddings for modern edge-to-edge mobile screens */
+    .pb-safe { padding-bottom: max(env(safe-area-inset-bottom, 16px), 16px); }
+    .pt-safe { padding-top: max(env(safe-area-inset-top, 12px), 12px); }
+    
+    /* Modern Glassmorphism Styling */
     .glass-card {
-      background: rgba(15, 23, 42, 0.88);
+      background: rgba(15, 23, 42, 0.75);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
-    .glass-card-active {
+    .glass-card-glow {
       background: rgba(16, 185, 129, 0.08);
       border: 1px solid rgba(16, 185, 129, 0.3);
+      box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.15);
     }
-    .custom-scrollbar::-webkit-scrollbar {
-      width: 4px;
-      height: 4px;
+    .glass-input {
+      background: rgba(3, 7, 18, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.12);
     }
-    .custom-scrollbar::-webkit-scrollbar-track {
-      background: rgba(15, 23, 42, 0.6);
+    .glass-input:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 12px -2px rgba(56, 189, 248, 0.4);
     }
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: rgba(51, 65, 85, 0.8);
-      border-radius: 9999px;
-    }
+
+    /* Custom Scrollbar */
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.8); border-radius: 9999px; }
+
     #reader video {
       object-fit: cover !important;
-      border-radius: 1.5rem;
+      border-radius: 1.25rem;
       width: 100% !important;
       height: 100% !important;
     }
@@ -86,34 +89,47 @@
       touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
     }
-    @keyframes scan-laser {
-      0% { top: 12%; opacity: 0.8; }
-      50% { top: 88%; opacity: 1; }
-      100% { top: 12%; opacity: 0.8; }
+
+    /* Animated Laser Line for Camera Scanner */
+    @keyframes scan-laser-anim {
+      0% { top: 10%; opacity: 0.7; }
+      50% { top: 90%; opacity: 1; }
+      100% { top: 10%; opacity: 0.7; }
     }
-    .laser-line {
-      animation: scan-laser 1.8s infinite ease-in-out;
+    .laser-line-anim {
+      animation: scan-laser-anim 1.8s infinite ease-in-out;
     }
+
+    /* Smartphone Frame Constraint */
     .mobile-app-shell {
       max-width: 480px;
       margin-left: auto;
       margin-right: auto;
       min-height: 100vh;
       min-height: -webkit-fill-available;
-      box-shadow: 0 0 60px rgba(0,0,0,0.9);
+      box-shadow: 0 0 80px rgba(0, 0, 0, 0.95);
       position: relative;
+    }
+
+    /* Sheet Slide Up Animation */
+    @keyframes slideUp {
+      from { transform: translateY(100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .sheet-slide-up {
+      animation: slideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
   </style>
 </head>
 
 <body class="h-full flex flex-col font-sans bg-slate-950 text-slate-100 overflow-x-hidden antialiased selection:bg-brand-500 selection:text-white">
 
-  <div class="mobile-app-shell flex flex-col w-full bg-slate-950 min-h-screen">
+  <div class="mobile-app-shell flex flex-col w-full bg-slate-950 min-h-screen border-x border-slate-800/60">
 
     <!-- TOP MOBILE APP BAR -->
     <header class="sticky top-0 z-30 bg-slate-900/95 border-b border-slate-800/80 backdrop-blur-xl px-3.5 py-2.5 pt-safe flex items-center justify-between shadow-2xl">
       <div class="flex items-center space-x-2.5">
-        <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-brand-500 via-indigo-600 to-emerald-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/20 shrink-0">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-sky-400 via-indigo-500 to-emerald-400 flex items-center justify-center text-white shadow-glow-cyan shrink-0">
           <i class="fa-solid fa-boxes-packing text-lg"></i>
         </div>
         <div>
@@ -127,50 +143,49 @@
         </div>
       </div>
 
-      <!-- Quick Controls & Status -->
+      <!-- Quick Controls & Network Status -->
       <div class="flex items-center space-x-1.5">
         <a href="https://docs.google.com/spreadsheets/d/1iwIUex4VL_P1ORfPzTUKRgFvg_9bJsoEjdaNi605C_Y/edit?gid=1413100930#gid=1413100930" target="_blank" title="Buka Spreadsheet DATABASE SO" class="bg-emerald-950/80 active:scale-95 text-emerald-300 text-xs px-2.5 py-1.5 rounded-xl border border-emerald-700/80 flex items-center gap-1.5 transition shadow">
           <i class="fa-solid fa-file-excel text-emerald-400"></i>
           <span class="text-[10px] font-bold hidden sm:inline">Sheet</span>
         </a>
 
-        <!-- TOMBOL SYNC SUPABASE KE SPREADSHEET -->
         <button id="btnSyncSupabaseToSheet" onclick="app.syncSupabaseToSpreadsheet()" title="Sinkronkan data Supabase ke Google Spreadsheet" class="bg-purple-950/90 active:scale-95 text-purple-200 text-xs px-2.5 py-1.5 rounded-xl border border-purple-700/80 flex items-center gap-1.5 transition shadow">
           <i class="fa-solid fa-cloud-arrow-up text-purple-400 text-xs" id="syncSupabaseIcon"></i>
-          <span class="text-[10px] font-bold">Sync DB➔Sheet</span>
+          <span class="text-[10px] font-bold">Sync</span>
         </button>
 
-        <button id="btnSyncQueue" onclick="app.syncPendingQueue()" class="relative bg-slate-800/90 active:scale-95 text-slate-200 text-xs px-2.5 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition shadow">
-          <i class="fa-solid fa-arrows-rotate text-brand-400 text-xs" id="syncIcon"></i>
-          <span class="text-[11px] font-bold">Queue</span>
+        <button id="btnSyncQueue" onclick="app.syncPendingQueue()" class="relative bg-slate-800/90 active:scale-95 text-slate-200 text-xs px-2 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1 transition shadow">
+          <i class="fa-solid fa-arrows-rotate text-sky-400 text-xs" id="syncIcon"></i>
           <span id="syncQueueBadge" class="bg-amber-500 text-slate-950 font-black px-1.5 py-0.2 rounded-full text-[10px] hidden">0</span>
         </button>
 
-        <div class="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-800/90 border border-slate-700/80 text-[11px] font-mono text-slate-300">
+        <div class="flex items-center gap-1 px-2 py-1 rounded-xl bg-slate-800/90 border border-slate-700/80 text-[11px] font-mono text-slate-300">
           <span class="w-2 h-2 rounded-full bg-emerald-500" id="netStatusDot"></span>
           <span id="netStatusText" class="text-[10px] font-bold">Online</span>
         </div>
       </div>
     </header>
 
-    <!-- MAIN VIEWPORT CONTAINER -->
     <main class="flex-1 overflow-y-auto p-3 sm:p-4 custom-scrollbar w-full pb-28">
 
       <!-- ================================================================= -->
       <!-- HALAMAN UTAMA (#so): STOCK OPNAME FISIK & LOG HASIL SO            -->
       <!-- ================================================================= -->
       <div id="page-so" class="space-y-3.5">
-        <div class="flex items-center justify-between bg-slate-900/80 px-3 py-2 rounded-xl border border-slate-800/80 text-xs">
-          <span class="font-black text-brand-400 flex items-center gap-1.5 font-mono">
-            <i class="fa-solid fa-barcode"></i> HALAMAN UTAMA (SO & HASIL SO)
+        
+        <!-- HEADER TITLE BANNER -->
+        <div class="flex items-center justify-between bg-gradient-to-r from-slate-900 via-slate-900 to-sky-950/60 px-3.5 py-2.5 rounded-2xl border border-slate-800/90 text-xs shadow-lg">
+          <span class="font-black text-sky-400 flex items-center gap-2 font-mono tracking-wide">
+            <i class="fa-solid fa-barcode text-base"></i> STOCK OPNAME FISIK
           </span>
-          <span class="text-[10px] bg-brand-500/20 text-brand-300 font-mono font-bold px-2 py-0.5 rounded border border-brand-500/30">#so</span>
+          <span class="text-[10px] bg-sky-500/20 text-sky-300 font-mono font-bold px-2.5 py-0.5 rounded-full border border-sky-500/30">#so</span>
         </div>
         
         <!-- SUB NAVIGATION TOGGLE FOR MOBILE -->
-        <div class="grid grid-cols-2 p-1 bg-slate-900/90 border border-slate-800 rounded-2xl text-xs font-semibold shadow-inner">
-          <button id="btnSubTabInput" onclick="app.switchSoSubView('input')" class="py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 text-white shadow-md transition flex items-center justify-center gap-2 active:scale-95">
-            <i class="fa-solid fa-barcode text-sm"></i> Input Fisik SO
+        <div class="grid grid-cols-2 p-1 bg-slate-900/90 border border-slate-800/90 rounded-2xl text-xs font-semibold shadow-inner">
+          <button id="btnSubTabInput" onclick="app.switchSoSubView('input')" class="py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-indigo-600 to-brand-600 text-white shadow-lg transition flex items-center justify-center gap-2 active:scale-95">
+            <i class="fa-solid fa-barcode text-sm"></i> Input Fisik
           </button>
           <button id="btnSubTabHasil" onclick="app.switchSoSubView('hasil')" class="py-2.5 rounded-xl text-slate-400 hover:text-white transition flex items-center justify-center gap-2 active:scale-95">
             <i class="fa-solid fa-list-check text-sm"></i> Log Hasil SO
@@ -180,14 +195,13 @@
         <!-- VIEW A: INPUT FORM & SCANNER -->
         <div id="soSubViewInput" class="space-y-3.5">
           
-          <!-- STEP 1: SESSION CONFIGURATION CARD -->
-          <div id="sessionCard" class="glass-card rounded-2xl p-3.5 border border-slate-800 shadow-xl space-y-3 transition-all">
+          <div id="sessionCard" class="glass-card rounded-2xl p-3.5 border border-slate-800/80 shadow-2xl space-y-3 transition-all">
             <div class="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
               <div class="flex items-center gap-2">
-                <span class="w-6 h-6 rounded-xl bg-brand-500/20 text-brand-400 flex items-center justify-center font-black text-xs border border-brand-500/30">1</span>
+                <span class="w-6 h-6 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center font-black text-xs border border-sky-500/30">1</span>
                 <div>
                   <h2 class="text-xs font-black text-white tracking-wide">Konfigurasi Sesi Lokasi / Rak</h2>
-                  <p class="text-[10px] text-slate-400">Tentukan petugas & lokasi sebelum scan fisik.</p>
+                  <p class="text-[10px] text-slate-400">Pilih petugas & lokasi rak sebelum pindaian.</p>
                 </div>
               </div>
               <button id="btnToggleLock" onclick="app.toggleSessionLock()" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 active:bg-emerald-500 text-white transition flex items-center gap-1.5 shadow-lg shadow-emerald-600/25 active:scale-95">
@@ -198,7 +212,7 @@
             <div class="grid grid-cols-2 gap-2 text-xs">
               <div>
                 <label class="block text-[10px] text-slate-400 font-medium mb-1">Tim SO</label>
-                <select id="sessionTeam" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-white text-xs focus:outline-none focus:border-brand-500 font-bold">
+                <select id="sessionTeam" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-2.5 py-2 text-white text-xs focus:outline-none focus:border-sky-500 font-bold">
                   <option value="SURTOK">SURTOK (Tim Awal)</option>
                   <option value="AUDIT">AUDIT (Tim Cek)</option>
                 </select>
@@ -206,19 +220,19 @@
 
               <div>
                 <label class="block text-[10px] text-slate-400 font-medium mb-1">Nama Petugas</label>
-                <select id="sessionOfficer" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-white text-xs focus:outline-none focus:border-brand-500 font-medium">
-                  <option value="">-- Pilih --</option>
+                <select id="sessionOfficer" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-2.5 py-2 text-white text-xs focus:outline-none focus:border-sky-500 font-medium">
+                  <option value="">-- Pilih Petugas --</option>
                 </select>
               </div>
 
               <div>
                 <label class="block text-[10px] text-slate-400 font-medium mb-1">Kode Rak / Baris</label>
-                <input type="text" id="sessionRack" placeholder="e.g. RAK-A01" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-amber-400 font-mono uppercase text-xs focus:outline-none focus:border-brand-500 font-black tracking-wide">
+                <input type="text" id="sessionRack" placeholder="e.g. RAK-A01" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-2.5 py-2 text-amber-400 font-mono uppercase text-xs focus:outline-none focus:border-sky-500 font-black tracking-wide">
               </div>
 
               <div>
                 <label class="block text-[10px] text-slate-400 font-medium mb-1">Tahap SO</label>
-                <select id="sessionPhase" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-white text-xs focus:outline-none focus:border-brand-500 font-medium">
+                <select id="sessionPhase" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-2.5 py-2 text-white text-xs focus:outline-none focus:border-sky-500 font-medium">
                   <option value="Fase 1">Fase 1 (Hitung 1)</option>
                   <option value="Fase 2">Fase 2 (Hitung 2)</option>
                   <option value="Final">Final Audit</option>
@@ -227,14 +241,13 @@
             </div>
           </div>
 
-          <!-- STEP 2: BARCODE & SEARCH CARD -->
-          <div class="glass-card rounded-2xl p-3.5 border border-slate-800 shadow-xl space-y-3">
+          <div class="glass-card rounded-2xl p-3.5 border border-slate-800/80 shadow-2xl space-y-3">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
-                <span class="w-6 h-6 rounded-xl bg-brand-500/20 text-brand-400 flex items-center justify-center font-black text-xs border border-brand-500/30">2</span>
+                <span class="w-6 h-6 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center font-black text-xs border border-sky-500/30">2</span>
                 <span class="text-xs font-black text-white tracking-wide">Cari / Scan Barcode SKU</span>
               </div>
-              <button onclick="app.openScannerModal()" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-brand-600 via-indigo-600 to-purple-600 active:from-brand-500 active:to-purple-500 text-white text-xs font-black transition flex items-center gap-1.5 shadow-lg shadow-indigo-600/30 active:scale-95">
+              <button onclick="app.openScannerModal()" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-sky-500 via-indigo-600 to-purple-600 active:scale-95 text-white text-xs font-black transition flex items-center gap-1.5 shadow-glow-cyan">
                 <i class="fa-solid fa-camera text-sm"></i> Scan HP
               </button>
             </div>
@@ -242,98 +255,96 @@
             <!-- BARCODE INPUT FIELD WITH LIVE AUTO-SUGGESTION -->
             <div class="relative">
               <div class="relative">
-                <i class="fa-solid fa-barcode absolute left-3.5 top-3.5 text-brand-400 text-sm"></i>
-                <input type="text" id="barcodeInput" oninput="app.handleBarcodeInput(this.value)" autocomplete="off" placeholder="Scan Barcode / SKU / Ketik Nama..." class="w-full bg-slate-900 border-2 border-slate-700 focus:border-brand-500 text-white font-mono text-sm rounded-xl pl-10 pr-9 py-2.5 transition focus:outline-none shadow-inner">
+                <i class="fa-solid fa-barcode absolute left-3.5 top-3.5 text-sky-400 text-sm"></i>
+                <input type="text" id="barcodeInput" oninput="app.handleBarcodeInput(this.value)" autocomplete="off" placeholder="Scan Barcode / SKU / Ketik Nama..." class="w-full bg-slate-950 border-2 border-slate-700/80 focus:border-sky-500 text-white font-mono text-sm rounded-xl pl-10 pr-9 py-2.5 transition focus:outline-none shadow-inner">
                 <button onclick="document.getElementById('barcodeInput').value=''; app.clearFoundItem();" class="absolute right-2.5 top-2.5 w-7 h-7 rounded-lg text-slate-400 hover:text-white flex items-center justify-center active:bg-slate-800">
                   <i class="fa-solid fa-xmark text-sm"></i>
                 </button>
               </div>
 
               <!-- Real-time Live Search Suggestion Dropdown -->
-              <div id="liveSearchDropdown" class="hidden absolute left-0 right-0 top-12 z-20 bg-slate-900/98 border border-slate-700 rounded-xl shadow-2xl max-h-48 overflow-y-auto custom-scrollbar divide-y divide-slate-800"></div>
+              <div id="liveSearchDropdown" class="hidden absolute left-0 right-0 top-12 z-20 bg-slate-900/98 border border-slate-700/90 rounded-xl shadow-2xl max-h-48 overflow-y-auto custom-scrollbar divide-y divide-slate-800"></div>
             </div>
 
             <!-- FOUND ITEM DISPLAY CARD -->
-            <div id="foundItemCard" class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 transition-all">
+            <div id="foundItemCard" class="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-3.5 transition-all">
               <div class="text-center py-5 text-slate-500 space-y-2">
-                <div class="w-12 h-12 rounded-full bg-slate-800/80 mx-auto flex items-center justify-center text-slate-600">
+                <div class="w-12 h-12 rounded-full bg-slate-900 border border-slate-800 mx-auto flex items-center justify-center text-slate-600">
                   <i class="fa-solid fa-barcode text-2xl"></i>
                 </div>
                 <p class="text-xs font-medium text-slate-400">Arahkan kamera HP ke barcode atau ketik SKU/Nama barang.</p>
               </div>
             </div>
 
-            <!-- QTY ADJUSTMENT & TOUCH KEYPAD -->
-            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 space-y-3">
+            <div class="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-3.5 space-y-3">
               <div class="flex items-center justify-between">
                 <label class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                  <i class="fa-solid fa-calculator text-brand-400"></i> Jumlah Fisik Dihitung (Pcs)
+                  <i class="fa-solid fa-calculator text-sky-400"></i> Jumlah Fisik Dihitung (Pcs)
                 </label>
-                <button onclick="app.toggleMobileDialpad()" class="text-[10px] text-brand-300 font-mono font-bold bg-brand-500/15 px-2.5 py-1 rounded-lg border border-brand-500/30 active:scale-95 flex items-center gap-1">
-                  <i class="fa-solid fa-keyboard"></i> Keypad HP
+                <button onclick="app.toggleMobileDialpad()" class="text-[10px] text-sky-300 font-mono font-bold bg-sky-500/15 px-2.5 py-1 rounded-lg border border-sky-500/30 active:scale-95 flex items-center gap-1">
+                  <i class="fa-solid fa-keyboard"></i> Keypad
                 </button>
               </div>
 
               <!-- Qty Counter Main Input -->
               <div class="flex items-center gap-2">
-                <button onclick="app.adjustQty(-1)" class="w-12 h-12 rounded-2xl bg-slate-800 active:bg-slate-700 text-white text-2xl font-bold flex items-center justify-center border border-slate-700 shrink-0 shadow active:scale-95">
+                <button onclick="app.adjustQty(-1)" class="w-12 h-12 rounded-2xl bg-slate-900 active:bg-slate-800 text-white text-2xl font-bold flex items-center justify-center border border-slate-700/80 shrink-0 shadow active:scale-95">
                   -
                 </button>
-                <input type="number" id="inputQty" value="1" min="1" class="flex-1 bg-slate-950 border-2 border-slate-700 focus:border-brand-500 rounded-2xl text-center font-mono text-2xl font-black text-emerald-400 py-2 focus:outline-none min-w-0 shadow-inner">
-                <button onclick="app.adjustQty(1)" class="w-12 h-12 rounded-2xl bg-slate-800 active:bg-slate-700 text-white text-2xl font-bold flex items-center justify-center border border-slate-700 shrink-0 shadow active:scale-95">
+                <input type="number" id="inputQty" value="1" min="1" class="flex-1 bg-slate-950 border-2 border-slate-700/80 focus:border-sky-500 rounded-2xl text-center font-mono text-2xl font-black text-emerald-400 py-2 focus:outline-none min-w-0 shadow-inner">
+                <button onclick="app.adjustQty(1)" class="w-12 h-12 rounded-2xl bg-slate-900 active:bg-slate-800 text-white text-2xl font-bold flex items-center justify-center border border-slate-700/80 shrink-0 shadow active:scale-95">
                   +
                 </button>
               </div>
 
-              <!-- Mobile Quick Fast Increment Buttons -->
+              <!-- Mobile Quick Fast Increment Presets -->
               <div class="grid grid-cols-5 gap-1.5">
-                <button onclick="app.setQty(1)" class="bg-slate-800 active:bg-slate-700 text-slate-200 py-2 rounded-xl text-xs font-mono font-bold border border-slate-700 active:scale-95 shadow">1</button>
-                <button onclick="app.addQty(5)" class="bg-slate-800 active:bg-slate-700 text-slate-200 py-2 rounded-xl text-xs font-mono font-bold border border-slate-700 active:scale-95 shadow">+5</button>
-                <button onclick="app.addQty(10)" class="bg-slate-800 active:bg-slate-700 text-slate-200 py-2 rounded-xl text-xs font-mono font-bold border border-slate-700 active:scale-95 shadow">+10</button>
-                <button onclick="app.addQty(24)" class="bg-slate-800 active:bg-slate-700 text-slate-200 py-2 rounded-xl text-xs font-mono font-bold border border-slate-700 active:scale-95 shadow">+24</button>
-                <button onclick="app.addQty(50)" class="bg-slate-800 active:bg-slate-700 text-slate-200 py-2 rounded-xl text-xs font-mono font-bold border border-slate-700 active:scale-95 shadow">+50</button>
+                <button onclick="app.setQty(1)" class="bg-slate-900 active:bg-slate-800 text-slate-200 py-2 rounded-xl text-xs font-mono font-bold border border-slate-800 active:scale-95 shadow">1</button>
+                <button onclick="app.addQty(5)" class="bg-slate-900 active:bg-slate-800 text-slate-200 py-2 rounded-xl text-xs font-mono font-bold border border-slate-800 active:scale-95 shadow">+5</button>
+                <button onclick="app.addQty(10)" class="bg-slate-900 active:bg-slate-800 text-slate-200 py-2 rounded-xl text-xs font-mono font-bold border border-slate-800 active:scale-95 shadow">+10</button>
+                <button onclick="app.addQty(24)" class="bg-slate-900 active:bg-slate-800 text-slate-200 py-2 rounded-xl text-xs font-mono font-bold border border-slate-800 active:scale-95 shadow">+24</button>
+                <button onclick="app.addQty(50)" class="bg-slate-900 active:bg-slate-800 text-slate-200 py-2 rounded-xl text-xs font-mono font-bold border border-slate-800 active:scale-95 shadow">+50</button>
               </div>
 
               <!-- POPUP TOUCH DIALPAD KEYPAD -->
               <div id="mobileDialpad" class="hidden grid grid-cols-3 gap-1.5 pt-2 border-t border-slate-800/80">
-                <button onclick="app.pressDial('1')" class="py-3 bg-slate-800 active:bg-slate-700 text-white rounded-xl font-mono text-base font-bold shadow">1</button>
-                <button onclick="app.pressDial('2')" class="py-3 bg-slate-800 active:bg-slate-700 text-white rounded-xl font-mono text-base font-bold shadow">2</button>
-                <button onclick="app.pressDial('3')" class="py-3 bg-slate-800 active:bg-slate-700 text-white rounded-xl font-mono text-base font-bold shadow">3</button>
-                <button onclick="app.pressDial('4')" class="py-3 bg-slate-800 active:bg-slate-700 text-white rounded-xl font-mono text-base font-bold shadow">4</button>
-                <button onclick="app.pressDial('5')" class="py-3 bg-slate-800 active:bg-slate-700 text-white rounded-xl font-mono text-base font-bold shadow">5</button>
-                <button onclick="app.pressDial('6')" class="py-3 bg-slate-800 active:bg-slate-700 text-white rounded-xl font-mono text-base font-bold shadow">6</button>
-                <button onclick="app.pressDial('7')" class="py-3 bg-slate-800 active:bg-slate-700 text-white rounded-xl font-mono text-base font-bold shadow">7</button>
-                <button onclick="app.pressDial('8')" class="py-3 bg-slate-800 active:bg-slate-700 text-white rounded-xl font-mono text-base font-bold shadow">8</button>
-                <button onclick="app.pressDial('9')" class="py-3 bg-slate-800 active:bg-slate-700 text-white rounded-xl font-mono text-base font-bold shadow">9</button>
+                <button onclick="app.pressDial('1')" class="py-3 bg-slate-900 active:bg-slate-800 text-white rounded-xl font-mono text-base font-bold shadow border border-slate-800">1</button>
+                <button onclick="app.pressDial('2')" class="py-3 bg-slate-900 active:bg-slate-800 text-white rounded-xl font-mono text-base font-bold shadow border border-slate-800">2</button>
+                <button onclick="app.pressDial('3')" class="py-3 bg-slate-900 active:bg-slate-800 text-white rounded-xl font-mono text-base font-bold shadow border border-slate-800">3</button>
+                <button onclick="app.pressDial('4')" class="py-3 bg-slate-900 active:bg-slate-800 text-white rounded-xl font-mono text-base font-bold shadow border border-slate-800">4</button>
+                <button onclick="app.pressDial('5')" class="py-3 bg-slate-900 active:bg-slate-800 text-white rounded-xl font-mono text-base font-bold shadow border border-slate-800">5</button>
+                <button onclick="app.pressDial('6')" class="py-3 bg-slate-900 active:bg-slate-800 text-white rounded-xl font-mono text-base font-bold shadow border border-slate-800">6</button>
+                <button onclick="app.pressDial('7')" class="py-3 bg-slate-900 active:bg-slate-800 text-white rounded-xl font-mono text-base font-bold shadow border border-slate-800">7</button>
+                <button onclick="app.pressDial('8')" class="py-3 bg-slate-900 active:bg-slate-800 text-white rounded-xl font-mono text-base font-bold shadow border border-slate-800">8</button>
+                <button onclick="app.pressDial('9')" class="py-3 bg-slate-900 active:bg-slate-800 text-white rounded-xl font-mono text-base font-bold shadow border border-slate-800">9</button>
                 <button onclick="app.pressDial('CLR')" class="py-3 bg-rose-950/60 text-rose-300 active:bg-rose-900 rounded-xl font-mono text-xs font-bold border border-rose-800">CLR</button>
-                <button onclick="app.pressDial('0')" class="py-3 bg-slate-800 active:bg-slate-700 text-white rounded-xl font-mono text-base font-bold shadow">0</button>
-                <button onclick="app.pressDial('DEL')" class="py-3 bg-slate-800 text-amber-400 active:bg-slate-700 rounded-xl font-mono text-xs font-bold"><i class="fa-solid fa-backspace"></i></button>
+                <button onclick="app.pressDial('0')" class="py-3 bg-slate-900 active:bg-slate-800 text-white rounded-xl font-mono text-base font-bold shadow border border-slate-800">0</button>
+                <button onclick="app.pressDial('DEL')" class="py-3 bg-slate-900 text-amber-400 active:bg-slate-800 rounded-xl font-mono text-xs font-bold border border-slate-800"><i class="fa-solid fa-backspace"></i></button>
               </div>
 
               <!-- MAIN SAVE BUTTON -->
-              <button onclick="app.saveSoEntry()" id="btnSaveSO" class="w-full mt-2 py-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 active:from-emerald-500 active:to-teal-500 text-white font-black text-sm rounded-2xl shadow-xl shadow-emerald-600/30 transition flex items-center justify-center gap-2 tracking-wider uppercase active:scale-95">
+              <button onclick="app.saveSoEntry()" id="btnSaveSO" class="w-full mt-2 py-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 active:from-emerald-500 active:to-teal-500 text-white font-black text-sm rounded-2xl shadow-glow-emerald transition flex items-center justify-center gap-2 tracking-wider uppercase active:scale-95">
                 <i class="fa-solid fa-floppy-disk text-lg"></i> SIMPAN STOK OPNAME FISIK
               </button>
             </div>
           </div>
 
-          <!-- RECENT RACK HISTORI CARD -->
-          <div class="glass-card rounded-2xl p-3.5 border border-slate-800 shadow-xl space-y-3">
+          <div class="glass-card rounded-2xl p-3.5 border border-slate-800/80 shadow-2xl space-y-3">
             <div class="flex items-center justify-between border-b border-slate-800 pb-2">
               <h3 class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                <i class="fa-solid fa-clock-rotate-left text-brand-400"></i> Histori Sesi Rak Aktif
+                <i class="fa-solid fa-clock-rotate-left text-sky-400"></i> Histori Sesi Rak Aktif
               </h3>
-              <span class="text-[10px] bg-slate-800 text-amber-400 px-2.5 py-0.5 rounded-full font-mono border border-slate-700 font-bold" id="currentRackBadge">Rak: -</span>
+              <span class="text-[10px] bg-slate-900 text-amber-400 px-2.5 py-0.5 rounded-full font-mono border border-slate-800 font-bold" id="currentRackBadge">Rak: -</span>
             </div>
 
-            <div class="grid grid-cols-2 gap-2 text-center p-2 rounded-xl bg-slate-900/80 border border-slate-800 font-mono">
+            <div class="grid grid-cols-2 gap-2 text-center p-2 rounded-xl bg-slate-950 border border-slate-800 font-mono">
               <div>
                 <p class="text-[9px] text-slate-400 uppercase font-sans">Total SKU Terhitung</p>
                 <p class="text-base font-black text-emerald-400" id="statSessionItems">0</p>
               </div>
               <div>
                 <p class="text-[9px] text-slate-400 uppercase font-sans">Total QTY Pcs</p>
-                <p class="text-base font-black text-brand-400" id="statSessionQty">0</p>
+                <p class="text-base font-black text-sky-400" id="statSessionQty">0</p>
               </div>
             </div>
 
@@ -346,18 +357,18 @@
 
         <!-- VIEW B: LOG HASIL SO -->
         <div id="soSubViewHasil" class="hidden space-y-3">
-          <div class="glass-card rounded-2xl p-3.5 border border-slate-800 shadow-xl space-y-3">
+          <div class="glass-card rounded-2xl p-3.5 border border-slate-800/80 shadow-2xl space-y-3">
             <div class="flex flex-col gap-2">
               <div class="flex items-center justify-between">
                 <h3 class="text-xs font-bold text-white flex items-center gap-1.5">
-                  <i class="fa-solid fa-table-list text-brand-400"></i> HASIL SO (Log Terdaftar)
+                  <i class="fa-solid fa-table-list text-sky-400"></i> HASIL SO (Log Terdaftar)
                 </h3>
-                <button onclick="app.exportHasilSoCsv()" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-lg text-[11px] font-medium flex items-center gap-1 active:scale-95">
+                <button onclick="app.exportHasilSoCsv()" class="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 rounded-lg text-[11px] font-medium flex items-center gap-1 active:scale-95">
                   <i class="fa-solid fa-file-csv text-emerald-400"></i> Export CSV
                 </button>
               </div>
 
-              <input type="text" id="searchHasilSoInput" oninput="app.renderHasilSoTable()" placeholder="Cari Rak / SKU / Petugas..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500 font-mono">
+              <input type="text" id="searchHasilSoInput" oninput="app.renderHasilSoTable()" placeholder="Cari Rak / SKU / Petugas..." class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500 font-mono">
             </div>
 
             <div id="hasilSoCardContainer" class="space-y-2 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
@@ -372,36 +383,36 @@
       <!-- HALAMAN 2 (#RevisiSO): REVISI SO SELISIH AUDIT                    -->
       <!-- ================================================================= -->
       <div id="page-revisi" class="hidden space-y-3.5">
-        <div class="flex items-center justify-between bg-slate-900/80 px-3 py-2 rounded-xl border border-slate-800/80 text-xs">
-          <span class="font-black text-amber-400 flex items-center gap-1.5 font-mono">
-            <i class="fa-solid fa-list-check"></i> HALAMAN REVISI SO
+        <div class="flex items-center justify-between bg-gradient-to-r from-slate-900 via-slate-900 to-amber-950/60 px-3.5 py-2.5 rounded-2xl border border-slate-800/90 text-xs shadow-lg">
+          <span class="font-black text-amber-400 flex items-center gap-2 font-mono tracking-wide">
+            <i class="fa-solid fa-list-check text-base"></i> HALAMAN REVISI SO
           </span>
-          <span class="text-[10px] bg-amber-500/20 text-amber-300 font-mono font-bold px-2 py-0.5 rounded border border-amber-500/30">#RevisiSO</span>
+          <span class="text-[10px] bg-amber-500/20 text-amber-300 font-mono font-bold px-2.5 py-0.5 rounded-full border border-amber-500/30">#RevisiSO</span>
         </div>
         
         <!-- SUMMARY STATS BANNER -->
         <div class="grid grid-cols-3 gap-2 text-center text-xs">
-          <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-2.5">
+          <div class="bg-slate-900/90 border border-slate-800/80 rounded-2xl p-2.5">
             <span class="text-[9px] text-slate-400 block uppercase font-medium">Total Selisih</span>
             <strong class="text-amber-400 font-mono text-base font-black" id="statRevTotal">0</strong>
           </div>
-          <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-2.5">
+          <div class="bg-slate-900/90 border border-slate-800/80 rounded-2xl p-2.5">
             <span class="text-[9px] text-rose-400 block uppercase font-medium">Belum Revisi</span>
             <strong class="text-rose-400 font-mono text-base font-black" id="statRevPending">0</strong>
           </div>
-          <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-2.5">
+          <div class="bg-slate-900/90 border border-slate-800/80 rounded-2xl p-2.5">
             <span class="text-[9px] text-emerald-400 block uppercase font-medium">Sudah Revisi</span>
             <strong class="text-emerald-400 font-mono text-base font-black" id="statRevDone">0</strong>
           </div>
         </div>
 
         <!-- MULTI-CRITERIA FILTER BAR -->
-        <div class="glass-card rounded-2xl p-3.5 border border-slate-800 shadow-xl space-y-2.5">
+        <div class="glass-card rounded-2xl p-3.5 border border-slate-800/80 shadow-2xl space-y-2.5">
           <div class="flex items-center justify-between border-b border-slate-800 pb-2">
             <h2 class="text-xs font-bold text-amber-400 flex items-center gap-1.5">
               <i class="fa-solid fa-filter"></i> Filter Item Selisih Audit
             </h2>
-            <button onclick="app.fetchRevisiSheetData()" class="px-2.5 py-1 bg-slate-800 active:bg-slate-700 text-amber-400 border border-slate-700 rounded-xl text-[11px] font-semibold flex items-center gap-1 active:scale-95">
+            <button onclick="app.fetchRevisiSheetData()" class="px-2.5 py-1 bg-slate-900 active:bg-slate-800 text-amber-400 border border-slate-700/80 rounded-xl text-[11px] font-semibold flex items-center gap-1 active:scale-95">
               <i class="fa-solid fa-arrows-rotate" id="refreshRevisiIcon"></i> Refresh
             </button>
           </div>
@@ -409,19 +420,19 @@
           <div class="grid grid-cols-2 gap-2 text-xs">
             <div>
               <label class="block text-slate-400 text-[10px] mb-0.5">Petugas</label>
-              <select id="filterRevOfficer" onchange="app.renderRevisiTable()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2 py-1.5 text-white text-[11px] focus:outline-none focus:border-amber-500">
+              <select id="filterRevOfficer" onchange="app.renderRevisiTable()" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-2 py-1.5 text-white text-[11px] focus:outline-none focus:border-amber-500">
                 <option value="">Semua Petugas</option>
               </select>
             </div>
 
             <div>
               <label class="block text-slate-400 text-[10px] mb-0.5">Kode Rak</label>
-              <input type="text" id="filterRevRack" oninput="app.renderRevisiTable()" placeholder="Contoh: RAK-A01" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2 py-1.5 text-white uppercase font-mono text-[11px] focus:outline-none focus:border-amber-500 font-bold">
+              <input type="text" id="filterRevRack" oninput="app.renderRevisiTable()" placeholder="Contoh: RAK-A01" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-2 py-1.5 text-white uppercase font-mono text-[11px] focus:outline-none focus:border-amber-500 font-bold">
             </div>
 
             <div>
               <label class="block text-slate-400 text-[10px] mb-0.5">Status Revisi</label>
-              <select id="filterRevStatus" onchange="app.renderRevisiTable()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2 py-1.5 text-white text-[11px] focus:outline-none focus:border-amber-500">
+              <select id="filterRevStatus" onchange="app.renderRevisiTable()" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-2 py-1.5 text-white text-[11px] focus:outline-none focus:border-amber-500">
                 <option value="BELUM" selected>Belum Direvisi</option>
                 <option value="SUDAH">Sudah Direvisi</option>
                 <option value="ALL">Semua Item</option>
@@ -430,13 +441,13 @@
 
             <div>
               <label class="block text-slate-400 text-[10px] mb-0.5">Pencarian</label>
-              <input type="text" id="filterRevSearch" oninput="app.renderRevisiTable()" placeholder="SKU / Nama / Barcode" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2 py-1.5 text-white font-mono text-[11px] focus:outline-none focus:border-amber-500">
+              <input type="text" id="filterRevSearch" oninput="app.renderRevisiTable()" placeholder="SKU / Nama / Barcode" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-2 py-1.5 text-white font-mono text-[11px] focus:outline-none focus:border-amber-500">
             </div>
           </div>
         </div>
 
-        <!-- REVISION CARDS FOR HP SCREEN -->
-        <div class="glass-card rounded-2xl p-3.5 border border-slate-800 shadow-xl space-y-3">
+        <!-- REVISION CARDS CONTAINER -->
+        <div class="glass-card rounded-2xl p-3.5 border border-slate-800/80 shadow-2xl space-y-3">
           <div class="flex items-center justify-between">
             <span class="text-xs font-bold text-slate-200">Daftar Item Selisih Audit</span>
             <span id="revisiTotalBadge" class="bg-amber-500/20 text-amber-300 font-mono text-[10px] px-2.5 py-0.5 rounded-full border border-amber-500/30 font-bold">0 Item</span>
@@ -453,11 +464,11 @@
       <!-- HALAMAN 3 (#admin): ADMINISTRATOR CONTROL HUB                    -->
       <!-- ================================================================= -->
       <div id="page-admin" class="hidden space-y-3.5">
-        <div class="flex items-center justify-between bg-slate-900/80 px-3 py-2 rounded-xl border border-slate-800/80 text-xs">
-          <span class="font-black text-purple-400 flex items-center gap-1.5 font-mono">
-            <i class="fa-solid fa-sliders"></i> HALAMAN ADMINISTRATOR
+        <div class="flex items-center justify-between bg-gradient-to-r from-slate-900 via-slate-900 to-purple-950/60 px-3.5 py-2.5 rounded-2xl border border-slate-800/90 text-xs shadow-lg">
+          <span class="font-black text-purple-400 flex items-center gap-2 font-mono tracking-wide">
+            <i class="fa-solid fa-sliders text-base"></i> HALAMAN ADMINISTRATOR
           </span>
-          <span class="text-[10px] bg-purple-500/20 text-purple-300 font-mono font-bold px-2 py-0.5 rounded border border-purple-500/30">#admin</span>
+          <span class="text-[10px] bg-purple-500/20 text-purple-300 font-mono font-bold px-2.5 py-0.5 rounded-full border border-purple-500/30">#admin</span>
         </div>
         
         <!-- FLUSH & SYNC CONTROL HUB CARD -->
@@ -469,8 +480,8 @@
             <span class="text-[9px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/30 font-mono font-bold">BI-DIRECTIONAL</span>
           </div>
 
-          <!-- OPTION A: SPREADSHEET TO SUPABASE (PUSH & OVERWRITE) -->
-          <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 space-y-2">
+          <!-- OPTION A: SPREADSHEET TO SUPABASE -->
+          <div class="bg-slate-950/90 border border-slate-800/80 rounded-xl p-3 space-y-2">
             <div class="flex items-center justify-between">
               <span class="text-[11px] font-bold text-emerald-400 flex items-center gap-1.5">
                 <i class="fa-solid fa-cloud-arrow-up"></i> 1. Spreadsheet ➔ Supabase (Push & Flush)
@@ -478,10 +489,10 @@
               <span class="text-[9px] text-slate-400 font-mono">Master & Petugas</span>
             </div>
             <p class="text-[10px] text-slate-400 leading-tight">
-              Unggah ulang seluruh data Master Item (70k SKU) dan Petugas dari Google Sheet ke tabel Supabase.
+              Unggah ulang seluruh data Master Item (70k SKU) dan Petugas dari Google Sheet ke tabel Supabase dalam batch streaming.
             </p>
             <div class="grid grid-cols-2 gap-2 pt-1">
-              <button onclick="app.syncSheetMasterToSupabase()" class="py-2.5 bg-brand-600 active:bg-brand-500 text-white font-bold text-xs rounded-xl shadow transition flex items-center justify-center gap-1.5 active:scale-95">
+              <button onclick="app.syncSheetMasterToSupabase()" class="py-2.5 bg-sky-600 active:bg-sky-500 text-white font-bold text-xs rounded-xl shadow transition flex items-center justify-center gap-1.5 active:scale-95">
                 <i class="fa-solid fa-sync" id="syncMasterIcon"></i> Sync Master
               </button>
               <button onclick="app.triggerFlushMasterSheetToSupabase()" class="py-2.5 bg-rose-950/90 active:bg-rose-900 border border-rose-700/80 text-rose-200 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 active:scale-95 shadow">
@@ -490,8 +501,8 @@
             </div>
           </div>
 
-          <!-- OPTION B: SUPABASE TO SPREADSHEET (PULL & OVERWRITE) -->
-          <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 space-y-2">
+          <!-- OPTION B: SUPABASE TO SPREADSHEET -->
+          <div class="bg-slate-950/90 border border-slate-800/80 rounded-xl p-3 space-y-2">
             <div class="flex items-center justify-between">
               <span class="text-[11px] font-bold text-purple-400 flex items-center gap-1.5">
                 <i class="fa-solid fa-cloud-arrow-down"></i> 2. Supabase ➔ Spreadsheet (Pull & Flush)
@@ -511,8 +522,8 @@
             </div>
           </div>
 
-          <!-- OPTION C: HP LOCAL CACHE (INDEXEDDB) FLUSH -->
-          <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 space-y-2">
+          <!-- OPTION C: HP LOCAL CACHE (INDEXEDDB) -->
+          <div class="bg-slate-950/90 border border-slate-800/80 rounded-xl p-3 space-y-2">
             <div class="flex items-center justify-between">
               <span class="text-[11px] font-bold text-sky-400 flex items-center gap-1.5">
                 <i class="fa-solid fa-hard-drive"></i> 3. Cache Memori HP Local (IndexedDB)
@@ -526,7 +537,7 @@
               <button onclick="app.flushAndReloadLocalCacheFromSupabase()" class="py-2.5 bg-sky-950/90 active:bg-sky-900 border border-sky-700/80 text-sky-200 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 active:scale-95 shadow">
                 <i class="fa-solid fa-rotate text-sky-400" id="reloadLocalCacheIcon"></i> Reload Cache Supabase
               </button>
-              <button onclick="app.flushMasterDatabase()" class="py-2.5 bg-slate-800 active:bg-slate-700 border border-slate-700 text-slate-300 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 active:scale-95 shadow">
+              <button onclick="app.flushMasterDatabase()" class="py-2.5 bg-slate-900 active:bg-slate-800 border border-slate-800 text-slate-300 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 active:scale-95 shadow">
                 <i class="fa-solid fa-trash-can text-slate-400"></i> Clear Cache HP
               </button>
             </div>
@@ -536,7 +547,7 @@
           <div class="space-y-1.5">
             <div class="flex items-center justify-between">
               <span class="text-[10px] font-bold text-slate-400 uppercase font-mono">Terminal Log Eksekusi Admin</span>
-              <button onclick="document.getElementById('adminConsoleOutput').innerHTML='[SYSTEM] Console cleared.'" class="text-[9px] text-brand-400 hover:underline">Clear</button>
+              <button onclick="document.getElementById('adminConsoleOutput').innerHTML='[SYSTEM] Console cleared.'" class="text-[9px] text-sky-400 hover:underline">Clear</button>
             </div>
             <div id="adminConsoleOutput" class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 font-mono text-[10px] text-emerald-400 h-28 overflow-y-auto custom-scrollbar leading-relaxed whitespace-pre-wrap">
               [SYSTEM] Admin Flush & Sync Hub Ready.
@@ -544,23 +555,22 @@
           </div>
         </div>
 
-        <!-- SUPABASE DATABASE CONFIGURATION & SQL GENERATOR CARD -->
-        <div class="glass-card rounded-2xl p-3.5 border border-slate-800 shadow-xl space-y-3">
+        <div class="glass-card rounded-2xl p-3.5 border border-slate-800/80 shadow-2xl space-y-3">
           <div class="flex items-center justify-between border-b border-slate-800 pb-2">
             <h3 class="text-xs font-bold text-white flex items-center gap-1.5">
               <i class="fa-solid fa-database text-emerald-400"></i> Supabase PostgreSQL Setup
             </h3>
-            <span id="supabaseStatusBadge" class="text-[9px] px-2 py-0.5 rounded-md font-mono font-bold bg-slate-800 text-slate-400 border border-slate-700">Offline</span>
+            <span id="supabaseStatusBadge" class="text-[9px] px-2 py-0.5 rounded-md font-mono font-bold bg-slate-900 text-slate-400 border border-slate-800">Offline</span>
           </div>
 
           <div class="space-y-2 text-xs">
             <div>
               <label class="block text-slate-400 text-[10px] mb-1">Supabase Project URL</label>
-              <input type="text" id="configSupabaseUrl" placeholder="https://xyz.supabase.co" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-slate-200 font-mono text-[11px] focus:outline-none focus:border-brand-500">
+              <input type="text" id="configSupabaseUrl" placeholder="https://xyz.supabase.co" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-slate-200 font-mono text-[11px] focus:outline-none focus:border-sky-500">
             </div>
             <div>
               <label class="block text-slate-400 text-[10px] mb-1">Supabase Anon Key</label>
-              <input type="password" id="configSupabaseKey" placeholder="eyJhbGciOiJIUzI1NiI..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-slate-200 font-mono text-[11px] focus:outline-none focus:border-brand-500">
+              <input type="password" id="configSupabaseKey" placeholder="eyJhbGciOiJIUzI1Ni..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-slate-200 font-mono text-[11px] focus:outline-none focus:border-sky-500">
             </div>
           </div>
 
@@ -568,35 +578,34 @@
             <button onclick="app.showSupabaseSqlModal()" class="py-2.5 bg-purple-950/40 border border-purple-800/60 active:bg-purple-900/60 text-purple-300 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 active:scale-95">
               <i class="fa-solid fa-code"></i> Script SQL Supabase
             </button>
-            <button onclick="app.saveSupabaseConfig()" class="py-2.5 bg-emerald-600 active:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-1.5 active:scale-95">
+            <button onclick="app.saveSupabaseConfig()" class="py-2.5 bg-emerald-600 active:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-glow-emerald flex items-center justify-center gap-1.5 active:scale-95">
               <i class="fa-solid fa-floppy-disk"></i> Simpan & Tes
             </button>
           </div>
         </div>
 
         <!-- GOOGLE APPS SCRIPT WEBHOOK CONFIG -->
-        <div class="glass-card rounded-2xl p-3.5 border border-slate-800 shadow-xl space-y-3">
+        <div class="glass-card rounded-2xl p-3.5 border border-slate-800/80 shadow-2xl space-y-3">
           <div class="flex items-center justify-between border-b border-slate-800 pb-2">
             <h3 class="text-xs font-bold text-white flex items-center gap-1.5">
-              <i class="fa-solid fa-link text-brand-400"></i> Google Apps Script Webhook
+              <i class="fa-solid fa-link text-sky-400"></i> Google Apps Script Webhook
             </h3>
-            <button onclick="app.showGasBackendCodeModal()" class="text-[10px] text-brand-300 font-mono underline">Lihat Code GAS</button>
+            <button onclick="app.showGasBackendCodeModal()" class="text-[10px] text-sky-300 font-mono underline">Lihat Code GAS</button>
           </div>
 
           <div class="space-y-2 text-xs">
             <div>
               <label class="block text-slate-400 text-[10px] mb-1">URL Exec Webhook</label>
-              <input type="text" id="configWebhookUrl" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-slate-200 font-mono text-[11px] focus:outline-none focus:border-brand-500">
+              <input type="text" id="configWebhookUrl" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-slate-200 font-mono text-[11px] focus:outline-none focus:border-sky-500">
             </div>
           </div>
 
-          <button onclick="app.saveSystemConfig()" class="w-full py-2.5 bg-brand-600 active:bg-brand-500 text-white font-bold text-xs rounded-xl shadow flex items-center justify-center gap-1.5 active:scale-95">
+          <button onclick="app.saveSystemConfig()" class="w-full py-2.5 bg-sky-600 active:bg-sky-500 text-white font-bold text-xs rounded-xl shadow flex items-center justify-center gap-1.5 active:scale-95">
             <i class="fa-solid fa-floppy-disk"></i> Simpan URL Webhook
           </button>
         </div>
 
-        <!-- MASTER SKU DATABASE CARD -->
-        <div class="glass-card rounded-2xl p-3.5 border border-slate-800 shadow-xl space-y-2.5">
+        <div class="glass-card rounded-2xl p-3.5 border border-slate-800/80 shadow-2xl space-y-2.5">
           <div class="flex items-center justify-between border-b border-slate-800 pb-2">
             <h3 class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
               <i class="fa-solid fa-boxes-stacked text-purple-400"></i> Master Item Database (IndexedDB)
@@ -609,7 +618,7 @@
           </p>
 
           <div class="grid grid-cols-2 gap-2 pt-1">
-            <button onclick="app.syncSheetMasterToSupabase()" class="py-2.5 bg-gradient-to-r from-brand-600 to-indigo-600 active:from-brand-500 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 shadow active:scale-95">
+            <button onclick="app.syncSheetMasterToSupabase()" class="py-2.5 bg-gradient-to-r from-sky-600 to-indigo-600 active:from-sky-500 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 shadow active:scale-95">
               <i class="fa-solid fa-cloud-arrow-up" id="syncMasterIcon"></i> Sync Master
             </button>
             <button onclick="app.flushAndSyncMasterToSupabase()" class="py-2.5 bg-rose-950/80 active:bg-rose-900 border border-rose-700/80 text-rose-200 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 active:scale-95 shadow">
@@ -618,7 +627,7 @@
           </div>
 
           <div class="grid grid-cols-2 gap-2 pt-1">
-            <button onclick="app.seedMockMasterData()" class="py-2.5 bg-slate-800 active:bg-slate-700 border border-slate-700 text-[11px] font-bold text-slate-200 rounded-xl transition flex items-center justify-center gap-1.5 active:scale-95">
+            <button onclick="app.seedMockMasterData()" class="py-2.5 bg-slate-900 active:bg-slate-800 border border-slate-800 text-[11px] font-bold text-slate-200 rounded-xl transition flex items-center justify-center gap-1.5 active:scale-95">
               <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i> Seed 1k SKU
             </button>
             <button onclick="app.flushMasterDatabase()" class="py-2.5 bg-slate-900 active:bg-slate-800 border border-slate-800 text-[11px] font-bold text-slate-400 rounded-xl transition flex items-center justify-center gap-1.5 active:scale-95">
@@ -628,7 +637,7 @@
         </div>
 
         <!-- RACK COMPLETION MONITOR MATRIX -->
-        <div class="glass-card rounded-2xl p-3.5 border border-slate-800 shadow-xl space-y-2.5">
+        <div class="glass-card rounded-2xl p-3.5 border border-slate-800/80 shadow-2xl space-y-2.5">
           <div class="flex items-center justify-between border-b border-slate-800 pb-2">
             <h3 class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
               <i class="fa-solid fa-border-all text-amber-400"></i> Status Kelengkapan SO Per Rak
@@ -642,22 +651,22 @@
         </div>
 
         <!-- OFFICERS MANAGEMENT CARD -->
-        <div class="glass-card rounded-2xl p-3.5 border border-slate-800 shadow-xl space-y-3">
+        <div class="glass-card rounded-2xl p-3.5 border border-slate-800/80 shadow-2xl space-y-3">
           <div class="flex items-center justify-between border-b border-slate-800 pb-2">
             <h3 class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
               <i class="fa-solid fa-users text-indigo-400"></i> Daftar Petugas Terdaftar
             </h3>
-            <button onclick="app.addOfficerPrompt()" class="px-2 py-1 bg-indigo-600 text-white rounded-lg text-[10px] font-bold active:scale-95">
+            <button onclick="app.addOfficerPrompt()" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-bold active:scale-95 shadow">
               + Tambah
             </button>
           </div>
 
           <div class="grid grid-cols-2 gap-2 text-xs">
-            <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+            <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
               <h4 class="font-bold text-emerald-400 text-[11px] border-b border-slate-800 pb-1 mb-1">SURTOK (Tim Awal)</h4>
               <ul id="listSurtokOfficers" class="space-y-1 text-[11px] text-slate-300 font-mono"></ul>
             </div>
-            <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+            <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
               <h4 class="font-bold text-purple-400 text-[11px] border-b border-slate-800 pb-1 mb-1">AUDIT (Tim Cek)</h4>
               <ul id="listAuditOfficers" class="space-y-1 text-[11px] text-slate-300 font-mono"></ul>
             </div>
@@ -669,31 +678,32 @@
     </main>
 
     <!-- BOTTOM NAVIGATION TABS -->
-    <nav class="fixed bottom-0 inset-x-0 z-40 bg-slate-900/95 border-t border-slate-800/80 backdrop-blur-xl px-3 py-2 pb-safe max-w-[480px] mx-auto flex items-center justify-around shadow-2xl">
-      <button id="tabBtn-so" onclick="app.switchTab('so')" class="flex flex-col items-center justify-center py-1 rounded-xl text-brand-400 font-bold text-[10px] transition active:scale-95">
-        <i class="fa-solid fa-barcode text-base mb-0.5"></i>
+    <nav class="fixed bottom-0 inset-x-0 z-40 bg-slate-900/95 border-t border-slate-800/90 backdrop-blur-2xl px-3 py-2 pb-safe max-w-[480px] mx-auto flex items-center justify-around shadow-2xl">
+      <button id="tabBtn-so" onclick="app.switchTab('so')" class="flex flex-col items-center justify-center py-1 rounded-xl text-sky-400 font-bold text-[10px] transition active:scale-95">
+        <i class="fa-solid fa-barcode text-lg mb-0.5"></i>
         <span>SO & Hasil</span>
       </button>
 
       <button id="tabBtn-revisi" onclick="app.switchTab('revisi')" class="flex flex-col items-center justify-center py-1 rounded-xl text-slate-400 font-medium text-[10px] transition active:scale-95 relative">
-        <i class="fa-solid fa-list-check text-base mb-0.5"></i>
+        <i class="fa-solid fa-list-check text-lg mb-0.5"></i>
         <span>Revisi SO</span>
         <span id="revisiCountBadge" class="absolute -top-1 right-2 bg-amber-500 text-slate-950 font-black px-1.5 py-0.2 rounded-full text-[9px]">0</span>
       </button>
 
       <button id="tabBtn-admin" onclick="app.switchTab('admin')" class="flex flex-col items-center justify-center py-1 rounded-xl text-slate-400 font-medium text-[10px] transition active:scale-95">
-        <i class="fa-solid fa-sliders text-base mb-0.5"></i>
+        <i class="fa-solid fa-sliders text-lg mb-0.5"></i>
         <span>Admin</span>
       </button>
     </nav>
 
   </div>
 
+
   <!-- MODAL 1: CAMERA SCANNER OVERLAY -->
   <div id="scannerModal" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md hidden flex flex-col max-w-[480px] mx-auto">
     <div class="p-4 flex items-center justify-between border-b border-slate-800 pt-safe">
       <h3 class="text-xs font-bold text-white flex items-center gap-2">
-        <i class="fa-solid fa-camera text-brand-400"></i> Kamera Scanner Barcode
+        <i class="fa-solid fa-camera text-sky-400"></i> Kamera Scanner Barcode
       </h3>
       <button onclick="app.closeScannerModal()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center active:scale-95">
         <i class="fa-solid fa-xmark"></i>
@@ -701,9 +711,9 @@
     </div>
 
     <div class="flex-1 p-4 flex flex-col items-center justify-center relative">
-      <div class="w-full max-w-[300px] h-[300px] relative rounded-3xl overflow-hidden border-2 border-brand-500 shadow-2xl bg-slate-900">
+      <div class="w-full max-w-[300px] h-[300px] relative rounded-3xl overflow-hidden border-2 border-sky-500 shadow-glow-cyan bg-slate-900">
         <div id="reader" class="w-full h-full"></div>
-        <div class="laser-line absolute left-0 right-0 h-1 bg-red-500 shadow-[0_0_15px_#f43f5e] z-10"></div>
+        <div class="laser-line-anim absolute left-0 right-0 h-1 bg-red-500 shadow-[0_0_15px_#f43f5e] z-10"></div>
       </div>
       <p class="text-xs text-slate-400 mt-4 text-center">Posisikan kode barcode di dalam kotak scanner.</p>
     </div>
@@ -711,7 +721,7 @@
 
   <!-- MODAL 2: EDIT QTY REVISI BOTTOM SHEET -->
   <div id="revisiModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-end justify-center max-w-[480px] mx-auto">
-    <div class="bg-slate-900 border-t border-slate-800 rounded-t-3xl w-full p-4 space-y-3.5 shadow-2xl sheet-slide-up pb-safe">
+    <div class="bg-slate-900 border-t border-slate-800/90 rounded-t-3xl w-full p-4 space-y-3.5 shadow-2xl sheet-slide-up pb-safe">
       <div class="w-12 h-1.5 bg-slate-700 rounded-full mx-auto"></div>
       
       <div class="flex items-start justify-between">
@@ -728,13 +738,13 @@
       <div class="space-y-2">
         <label class="block text-[10px] text-slate-400 font-bold uppercase">Masukkan Angka Hasil Revisi Baru (Pcs)</label>
         <div class="flex items-center gap-2">
-          <button onclick="app.adjustRevModalQty(-1)" class="w-12 h-12 rounded-2xl bg-slate-800 active:bg-slate-700 text-white text-2xl font-bold flex items-center justify-center border border-slate-700">-</button>
-          <input type="number" id="revModalQtyInput" class="flex-1 bg-slate-950 border-2 border-slate-700 focus:border-amber-500 rounded-2xl text-center font-mono text-3xl font-black text-amber-400 py-2 focus:outline-none min-w-0">
-          <button onclick="app.adjustRevModalQty(1)" class="w-12 h-12 rounded-2xl bg-slate-800 active:bg-slate-700 text-white text-2xl font-bold flex items-center justify-center border border-slate-700">+</button>
+          <button onclick="app.adjustRevModalQty(-1)" class="w-12 h-12 rounded-2xl bg-slate-800 active:bg-slate-700 text-white text-2xl font-bold flex items-center justify-center border border-slate-700/80">-</button>
+          <input type="number" id="revModalQtyInput" class="flex-1 bg-slate-950 border-2 border-slate-700/80 focus:border-amber-500 rounded-2xl text-center font-mono text-3xl font-black text-amber-400 py-2 focus:outline-none min-w-0">
+          <button onclick="app.adjustRevModalQty(1)" class="w-12 h-12 rounded-2xl bg-slate-800 active:bg-slate-700 text-white text-2xl font-bold flex items-center justify-center border border-slate-700/80">+</button>
         </div>
       </div>
 
-      <button onclick="app.confirmRevisiQtyUpdate()" class="w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-600 active:from-amber-600 active:to-orange-700 text-slate-950 font-black text-xs rounded-2xl shadow-xl transition uppercase tracking-wider active:scale-95">
+      <button onclick="app.confirmRevisiQtyUpdate()" class="w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-600 active:from-amber-600 active:to-orange-700 text-slate-950 font-black text-xs rounded-2xl shadow-glow-amber transition uppercase tracking-wider active:scale-95">
         <i class="fa-solid fa-floppy-disk"></i> SIMPAN QTY REVISI SPREADSHEET
       </button>
     </div>
@@ -745,7 +755,7 @@
     <div class="glass-card border border-slate-800 rounded-2xl w-full p-4 space-y-3 relative shadow-2xl max-h-[85vh] flex flex-col">
       <div class="flex items-center justify-between border-b border-slate-800 pb-2">
         <h3 class="text-xs font-bold text-white flex items-center gap-1.5">
-          <i class="fa-solid fa-code text-brand-400"></i> Google Apps Script Code
+          <i class="fa-solid fa-code text-sky-400"></i> Google Apps Script Code
         </h3>
         <button onclick="document.getElementById('gasModal').classList.add('hidden')" class="text-slate-400 hover:text-white">
           <i class="fa-solid fa-xmark text-lg"></i>
@@ -759,7 +769,7 @@
       </div>
 
       <div class="flex justify-end gap-2 pt-1">
-        <button onclick="app.copyGasCode()" class="px-3 py-1.5 bg-brand-600 active:bg-brand-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 active:scale-95">
+        <button onclick="app.copyGasCode()" class="px-3 py-1.5 bg-sky-600 active:bg-sky-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 active:scale-95">
           <i class="fa-solid fa-copy"></i> Salin Kode
         </button>
       </div>
@@ -796,7 +806,7 @@
 
   <!-- MODAL 5: CUSTOM ADMIN CONFIRMATION SHEET -->
   <div id="adminConfirmModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-end justify-center max-w-[480px] mx-auto">
-    <div class="bg-slate-900 border-t border-slate-800 rounded-t-3xl w-full p-4 space-y-3.5 shadow-2xl sheet-slide-up pb-safe">
+    <div class="bg-slate-900 border-t border-slate-800/90 rounded-t-3xl w-full p-4 space-y-3.5 shadow-2xl sheet-slide-up pb-safe">
       <div class="w-12 h-1.5 bg-slate-700 rounded-full mx-auto"></div>
       
       <div class="flex items-start justify-between">
@@ -827,9 +837,6 @@
   <!-- TOAST NOTIFICATION CONTAINER -->
   <div id="toastContainer" class="fixed top-14 inset-x-4 z-50 space-y-2 pointer-events-none flex flex-col items-center max-w-[440px] mx-auto"></div>
 
-  <!-- ================================================================= -->
-  <!-- JAVASCRIPT APPLICATION CORE LOGIC                                 -->
-  <!-- ================================================================= -->
   <script>
     const DEFAULT_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbys4vTQjNyUII6PUOv8TMJK4O1efanK4XW0g1Zzq3uRJ0uSjXYRptwdm6Yv4Yk0F7w83A/exec";
     const DEFAULT_SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1iwIUex4VL_P1ORfPzTUKRgFvg_9bJsoEjdaNi605C_Y/edit?gid=1413100930#gid=1413100930";
@@ -1114,7 +1121,7 @@
         const currentTeam = teamSelect.value;
         const list = state.officers[currentTeam] || [];
 
-        officerSelect.innerHTML = '<option value="">-- Pilih --</option>';
+        officerSelect.innerHTML = '<option value="">-- Pilih Petugas --</option>';
         list.forEach(off => {
           officerSelect.innerHTML += `<option value="${off}">${off}</option>`;
         });
@@ -1154,7 +1161,7 @@
           teamSelect.disabled = true;
           phaseSelect.disabled = true;
 
-          sessionCard.className = "glass-card glass-card-active rounded-2xl p-3.5 shadow-xl space-y-3 transition-all";
+          sessionCard.className = "glass-card glass-card-glow rounded-2xl p-3.5 shadow-2xl space-y-3 transition-all";
 
           document.getElementById('lockBtnText').textContent = "Buka Sesi";
           document.getElementById('btnToggleLock').className = "px-3.5 py-1.5 rounded-xl text-xs font-bold bg-rose-600 active:bg-rose-500 text-white transition flex items-center gap-1.5 shadow-lg shadow-rose-600/20 active:scale-95";
@@ -1171,7 +1178,7 @@
           teamSelect.disabled = false;
           phaseSelect.disabled = false;
 
-          sessionCard.className = "glass-card rounded-2xl p-3.5 border border-slate-800 shadow-xl space-y-3 transition-all";
+          sessionCard.className = "glass-card rounded-2xl p-3.5 border border-slate-800/80 shadow-2xl space-y-3 transition-all";
 
           document.getElementById('lockBtnText').textContent = "Kunci Sesi";
           document.getElementById('btnToggleLock').className = "px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 active:bg-emerald-500 text-white transition flex items-center gap-1.5 shadow-lg shadow-emerald-600/20 active:scale-95";
@@ -1271,7 +1278,7 @@
         card.innerHTML = `
           <div class="flex items-start justify-between gap-2">
             <div class="space-y-1">
-              <span class="inline-block text-[9px] bg-brand-500/20 text-brand-300 font-mono font-bold px-2 py-0.5 rounded-md border border-brand-500/30">${item.family || 'GENERAL'}</span>
+              <span class="inline-block text-[9px] bg-sky-500/20 text-sky-300 font-mono font-bold px-2 py-0.5 rounded-md border border-sky-500/30">${item.family || 'GENERAL'}</span>
               <h4 class="text-xs font-black text-white leading-snug">${item.name}</h4>
               <div class="flex flex-wrap items-center gap-2 text-[11px] font-mono text-slate-400 pt-0.5">
                 <span>SKU: <strong class="text-emerald-400 font-bold">${item.sku}</strong></span>
@@ -1309,7 +1316,7 @@
         state.selectedItem = null;
         document.getElementById('foundItemCard').innerHTML = `
           <div class="text-center py-5 text-slate-500 space-y-2">
-            <div class="w-12 h-12 rounded-full bg-slate-800/80 mx-auto flex items-center justify-center text-slate-600">
+            <div class="w-12 h-12 rounded-full bg-slate-900 border border-slate-800 mx-auto flex items-center justify-center text-slate-600">
               <i class="fa-solid fa-barcode text-2xl"></i>
             </div>
             <p class="text-xs font-medium text-slate-400">Arahkan kamera HP ke barcode atau ketik SKU/Nama barang.</p>
@@ -1602,7 +1609,7 @@
             </div>
 
             <div class="pt-1 flex justify-end">
-              <button onclick="app.openRevisiModal('${item.id}')" class="px-3.5 py-2 bg-gradient-to-r from-sky-600 to-brand-600 active:from-sky-500 active:to-brand-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow active:scale-95">
+              <button onclick="app.openRevisiModal('${item.id}')" class="px-3.5 py-2 bg-gradient-to-r from-sky-600 to-indigo-600 active:scale-95 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow">
                 <i class="fa-solid fa-pen-to-square"></i> Update Qty Revisi
               </button>
             </div>
@@ -1944,9 +1951,12 @@
         const icon = document.getElementById('flushMasterIcon');
         if (icon) icon.classList.add('fa-spin');
 
+        this.logAdminConsole("Memulai Flush & Sync Master 70k SKU ke Supabase...", "warn");
         this.showToast('Memulai Flush & Sync Master ke Supabase...', 'indigo');
 
         try {
+          // Step 1: Fetch Master Items Array from Webhook
+          this.logAdminConsole("Menerima data Master Item dari Google Spreadsheet...", "sky");
           const res = await fetch(`${state.webhookUrl}?action=GET_MASTER_ITEMS`);
           let items = [];
 
@@ -1957,8 +1967,31 @@
             }
           }
 
-          if (items.length > 0 && state.supabaseClient) {
-            this.showToast(`Menerima ${items.length} SKU dari Sheet. Menghapus data lama di Supabase...`, 'indigo');
+          if (items.length === 0) {
+            this.logAdminConsole("Gagal mengambil data dari Webhook. Mencoba pemicu langsung Webhook GAS...", "warn");
+            const webhookRes = await fetch(state.webhookUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({ action: 'FLUSH_AND_SYNC_MASTER' })
+            });
+
+            if (webhookRes.ok) {
+              const data = await webhookRes.json();
+              if (data.status === 'success') {
+                this.logAdminConsole(`SUKSES: ${data.message} (${data.totalSynced || 0} SKU).`, "emerald");
+                this.showToast(`Sukses Flush & Re-upload ${data.totalSynced || 0} SKU!`, 'emerald');
+                audioSynth.playBeep();
+              } else {
+                this.logAdminConsole(`GAGAL: ${data.message}`, "error");
+                this.showToast(`Gagal: ${data.message}`, 'rose');
+              }
+            }
+            return;
+          }
+
+          // Step 2: Client-side Batch Chunk Streaming directly via Supabase Client
+          if (state.supabaseClient) {
+            this.logAdminConsole(`Terbaca ${items.length} SKU. Menghapus data lama di Supabase products...`, "warn");
 
             const { error: delError } = await state.supabaseClient
               .from('products')
@@ -1966,14 +1999,19 @@
               .neq('sku', '');
 
             if (delError) {
-              console.warn('Supabase Flush Delete Warning:', delError);
+              this.logAdminConsole(`Flush Notice: ${delError.message}`, "warn");
             }
 
-            const chunkSize = 250;
+            const chunkSize = 1000;
             let uploadedCount = 0;
+            const totalChunks = Math.ceil(items.length / chunkSize);
 
             for (let i = 0; i < items.length; i += chunkSize) {
               const chunk = items.slice(i, i + chunkSize);
+              const chunkNum = Math.floor(i / chunkSize) + 1;
+
+              this.logAdminConsole(`Mengunggah batch ${chunkNum}/${totalChunks} (${chunk.length} SKU)...`, "sky");
+
               const { error: insError } = await state.supabaseClient
                 .from('products')
                 .upsert(chunk, { onConflict: 'sku' });
@@ -1981,44 +2019,26 @@
               if (!insError) {
                 uploadedCount += chunk.length;
               } else {
-                console.error('Batch Upload Chunk Error:', insError);
+                this.logAdminConsole(`Batch ${chunkNum} Error: ${insError.message}`, "error");
               }
             }
 
+            await dbEngine.clearMasterStore();
             await dbEngine.saveItemsBatch(items);
+            state.masterItemsMap.clear();
             items.forEach(item => {
               if (item && item.sku) state.masterItemsMap.set(item.sku, item);
               if (item && item.barcode) state.masterItemsMap.set(item.barcode, item);
             });
             this.updateMasterCountDisplay();
 
-            this.showToast(`SUKSES! ${uploadedCount} SKU Master ter-Flush & Sync ke Supabase!`, 'emerald');
+            this.logAdminConsole(`SUKSES LENGKAP! ${uploadedCount} dari ${items.length} SKU ter-Flush & Sync ke Supabase!`, "emerald");
+            this.showToast(`SUKSES! ${uploadedCount} SKU Master ter-Flush & Sync!`, 'emerald');
             audioSynth.playBeep();
-            return;
-          }
-
-          const webhookRes = await fetch(state.webhookUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ action: 'FLUSH_AND_SYNC_MASTER' })
-          });
-
-          if (webhookRes.ok) {
-            const data = await webhookRes.json();
-            if (data.status === 'success') {
-              this.showToast(`Sukses Flush & Re-upload ${data.totalSynced || 0} SKU ke Supabase!`, 'emerald');
-              audioSynth.playBeep();
-            } else {
-              this.showToast(`Gagal: ${data.message}`, 'rose');
-              audioSynth.playError();
-            }
-          } else {
-            this.showToast('Gagal terhubung ke Webhook Apps Script', 'rose');
-            audioSynth.playError();
           }
 
         } catch (e) {
-          console.error('Error Flush & Sync Master:', e);
+          this.logAdminConsole(`EXCEPTION: ${e.message}`, "error");
           this.showToast('Error: ' + e.message, 'rose');
           audioSynth.playError();
         } finally {
@@ -2160,7 +2180,7 @@
 
         document.getElementById(`page-${tab}`).classList.remove('hidden');
         const activeBtn = document.getElementById(`tabBtn-${tab}`);
-        activeBtn.className = "flex flex-col items-center justify-center py-1 rounded-xl text-brand-400 font-bold text-[10px] transition active:scale-95";
+        activeBtn.className = "flex flex-col items-center justify-center py-1 rounded-xl text-sky-400 font-bold text-[10px] transition active:scale-95";
 
         if (tab === 'revisi') this.fetchRevisiSheetData();
       },
@@ -2174,12 +2194,12 @@
         const viewHasil = document.getElementById('soSubViewHasil');
 
         if (view === 'input') {
-          btnInput.className = "py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 text-white shadow-md transition flex items-center justify-center gap-2 active:scale-95";
+          btnInput.className = "py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-indigo-600 to-brand-600 text-white shadow-lg transition flex items-center justify-center gap-2 active:scale-95";
           btnHasil.className = "py-2.5 rounded-xl text-slate-400 hover:text-white transition flex items-center justify-center gap-2 active:scale-95";
           viewInput.classList.remove('hidden');
           viewHasil.classList.add('hidden');
         } else {
-          btnHasil.className = "py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 text-white shadow-md transition flex items-center justify-center gap-2 active:scale-95";
+          btnHasil.className = "py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-indigo-600 to-brand-600 text-white shadow-lg transition flex items-center justify-center gap-2 active:scale-95";
           btnInput.className = "py-2.5 rounded-xl text-slate-400 hover:text-white transition flex items-center justify-center gap-2 active:scale-95";
           viewHasil.classList.remove('hidden');
           viewInput.classList.add('hidden');
@@ -2346,12 +2366,12 @@ ALTER TABLE public.stock_opname_logs DROP CONSTRAINT IF EXISTS stock_opname_logs
         const container = document.getElementById('toastContainer');
         const toast = document.createElement('div');
         
-        let colorClasses = "bg-emerald-950/90 border-emerald-600/80 text-emerald-200";
-        if (theme === 'amber') colorClasses = "bg-amber-950/90 border-amber-600/80 text-amber-200";
-        if (theme === 'rose') colorClasses = "bg-rose-950/90 border-rose-600/80 text-rose-200";
-        if (theme === 'indigo') colorClasses = "bg-indigo-950/90 border-indigo-600/80 text-indigo-200";
+        let colorClasses = "bg-emerald-950/90 border-emerald-600/80 text-emerald-200 shadow-glow-emerald";
+        if (theme === 'amber') colorClasses = "bg-amber-950/90 border-amber-600/80 text-amber-200 shadow-glow-amber";
+        if (theme === 'rose') colorClasses = "bg-rose-950/90 border-rose-600/80 text-rose-200 shadow-lg";
+        if (theme === 'indigo') colorClasses = "bg-indigo-950/90 border-indigo-600/80 text-indigo-200 shadow-glow-cyan";
 
-        toast.className = `pointer-events-auto px-4 py-2.5 rounded-2xl border shadow-2xl text-xs font-bold flex items-center gap-2 transition-all duration-300 transform -translate-y-2 opacity-0 ${colorClasses}`;
+        toast.className = `pointer-events-auto px-4 py-2.5 rounded-2xl border text-xs font-bold flex items-center gap-2 transition-all duration-300 transform -translate-y-2 opacity-0 ${colorClasses}`;
         toast.innerHTML = `<i class="fa-solid fa-circle-info"></i> <span>${msg}</span>`;
 
         container.appendChild(toast);
