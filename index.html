@@ -528,16 +528,21 @@
             Penyimpanan offline IndexedDB lokal mendukung hingga 70,000+ SKU pada memori HP tanpa lelet.
           </p>
 
-          <button onclick="app.syncSheetMasterToSupabase()" class="w-full py-2.5 bg-gradient-to-r from-brand-600 via-indigo-600 to-purple-600 active:from-brand-500 active:to-purple-500 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 shadow-lg active:scale-95">
-            <i class="fa-solid fa-cloud-arrow-up" id="syncMasterIcon"></i> Sync Sheet Master ➔ Supabase
-          </button>
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <button onclick="app.syncSheetMasterToSupabase()" class="py-2.5 bg-gradient-to-r from-brand-600 to-indigo-600 active:from-brand-500 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 shadow active:scale-95">
+              <i class="fa-solid fa-cloud-arrow-up" id="syncMasterIcon"></i> Sync Master
+            </button>
+            <button onclick="app.flushAndSyncMasterToSupabase()" class="py-2.5 bg-rose-950/80 active:bg-rose-900 border border-rose-700/80 text-rose-200 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 active:scale-95 shadow">
+              <i class="fa-solid fa-rotate-right text-rose-400" id="flushMasterIcon"></i> Flush & Sync Supabase
+            </button>
+          </div>
 
           <div class="grid grid-cols-2 gap-2 pt-1">
             <button onclick="app.seedMockMasterData()" class="py-2.5 bg-slate-800 active:bg-slate-700 border border-slate-700 text-[11px] font-bold text-slate-200 rounded-xl transition flex items-center justify-center gap-1.5 active:scale-95">
               <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i> Seed 1k SKU
             </button>
-            <button onclick="app.flushMasterDatabase()" class="py-2.5 bg-rose-950/40 active:bg-rose-900/60 border border-rose-800/60 text-[11px] font-bold text-rose-300 rounded-xl transition flex items-center justify-center gap-1.5 active:scale-95">
-              <i class="fa-solid fa-trash-can text-rose-400"></i> Flush Cache
+            <button onclick="app.flushMasterDatabase()" class="py-2.5 bg-slate-900 active:bg-slate-800 border border-slate-800 text-[11px] font-bold text-slate-400 rounded-xl transition flex items-center justify-center gap-1.5 active:scale-95">
+              <i class="fa-solid fa-trash-can text-slate-500"></i> Flush HP Cache
             </button>
           </div>
         </div>
@@ -1271,6 +1276,16 @@
         // INTEGRASI SUPABASE POSTGRESQL DENGAN DETEKSI ERROR RESPONSE
         if (state.supabaseClient) {
           try {
+            // Upsert produk ke tabel products terlebih dahulu agar Foreign Key 'stock_opname_logs_sku_fkey' selalu terpenuhi
+            if (state.selectedItem && state.selectedItem.sku) {
+              await state.supabaseClient.from('products').upsert([{
+                sku: state.selectedItem.sku,
+                barcode: state.selectedItem.barcode || '-',
+                name: state.selectedItem.name || state.selectedItem.sku,
+                family: state.selectedItem.family || 'GENERAL'
+              }], { onConflict: 'sku' });
+            }
+
             const { data, error } = await state.supabaseClient.from('stock_opname_logs').insert([{
               id: logEntry.id,
               timestamp: logEntry.timestamp,
@@ -1288,7 +1303,7 @@
 
             if (error) {
               console.error('Supabase Direct Insert Error:', error);
-              this.showToast(`Supabase: ${error.message} (Jalankan SQL DDL)`, 'amber');
+              this.showToast(`Supabase: ${error.message}`, 'amber');
             } else {
               console.log('Berhasil tersimpan di Supabase!');
             }
@@ -1673,6 +1688,46 @@
         }
       },
 
+      async flushAndSyncMasterToSupabase() {
+        haptics.vibrate(40);
+        if (!confirm("Apakah Anda yakin ingin menghapus (FLUSH) seluruh data Master Item di Supabase dan mengunggah ulang dari Spreadsheet?")) {
+          return;
+        }
+
+        const icon = document.getElementById('flushMasterIcon');
+        if (icon) icon.classList.add('fa-spin');
+
+        this.showToast('Memulai Flush & Sync Master ke Supabase...', 'indigo');
+
+        try {
+          const res = await fetch(state.webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action: 'FLUSH_AND_SYNC_MASTER' })
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            if (data.status === 'success') {
+              this.showToast(`Sukses Flush & Re-upload ${data.totalSynced || 0} SKU Master ke Supabase!`, 'emerald');
+              audioSynth.playBeep();
+            } else {
+              this.showToast(`Gagal: ${data.message}`, 'rose');
+              audioSynth.playError();
+            }
+          } else {
+            this.showToast('Gagal terhubung ke Webhook Apps Script', 'rose');
+            audioSynth.playError();
+          }
+        } catch (e) {
+          console.error('Error Flush & Sync Master:', e);
+          this.showToast('Error koneksi Webhook', 'rose');
+          audioSynth.playError();
+        } finally {
+          if (icon) icon.classList.remove('fa-spin');
+        }
+      },
+
       updateMasterCountDisplay() {
         // Calculate unique SKU count from IndexedDB Map
         const uniqueSkus = new Set();
@@ -1950,7 +2005,10 @@ CREATE TABLE IF NOT EXISTS public.stock_opname_logs (
     qty INT DEFAULT 1,
     synced_to_sheet BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);`;
+);
+
+-- Hapus Foreign Key Constraint jika ada agar SKU baru/belum terdaftar di master tetap bisa di-SO
+ALTER TABLE public.stock_opname_logs DROP CONSTRAINT IF EXISTS stock_opname_logs_sku_fkey;`;
 
         document.getElementById('supabaseSqlCodeContainer').textContent = sqlCode;
         document.getElementById('supabaseSqlModal').classList.remove('hidden');
