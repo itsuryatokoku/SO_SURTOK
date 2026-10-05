@@ -446,19 +446,20 @@
         <div class="glass-card rounded-2xl p-3.5 border border-emerald-900/60 bg-emerald-950/20 shadow-xl space-y-2.5">
           <div class="flex items-center justify-between border-b border-emerald-800/40 pb-2">
             <h3 class="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
-              <i class="fa-solid fa-file-spreadsheet text-emerald-400"></i> Link Spreadsheet DATABASE SO
+              <i class="fa-solid fa-arrows-rotate text-emerald-400"></i> Sinkronisasi Dua Arah (Bi-Directional)
             </h3>
             <span class="text-[9px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-md border border-emerald-500/30 font-mono font-bold">LIVE SYNC</span>
           </div>
           <p class="text-[11px] text-slate-300 leading-relaxed">
-            Aplikasi terhubung secara real-time dengan Supabase PostgreSQL & Google Spreadsheet target.
+            1. <strong>Sheet ➔ Supabase:</strong> Kirim Master Item & Petugas.<br>
+            2. <strong>Supabase ➔ Sheet:</strong> Tarik Hasil SO & QTY Revisi.
           </p>
           <div class="grid grid-cols-2 gap-2 pt-1">
-            <button onclick="app.syncSupabaseToSpreadsheet()" class="py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 active:from-purple-500 active:to-indigo-500 text-white font-bold text-xs rounded-xl transition text-center shadow-lg flex items-center justify-center gap-1.5 active:scale-95">
-              <i class="fa-solid fa-cloud-arrow-up"></i> Sync Supabase ➔ Sheet
+            <button onclick="app.syncSheetMasterToSupabase()" class="py-2.5 bg-gradient-to-r from-brand-600 to-indigo-600 active:from-brand-500 active:to-indigo-500 text-white font-bold text-xs rounded-xl transition text-center shadow-lg flex items-center justify-center gap-1.5 active:scale-95">
+              <i class="fa-solid fa-cloud-arrow-up" id="syncMasterIcon"></i> Sheet ➔ Supabase
             </button>
-            <button onclick="app.syncAllFromSpreadsheet()" class="py-2.5 bg-slate-800 active:bg-slate-700 text-emerald-400 border border-emerald-700/60 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 active:scale-95">
-              <i class="fa-solid fa-cloud-arrow-down" id="syncSheetIcon"></i> Tarik Sheet ➔ HP
+            <button onclick="app.syncSupabaseToSpreadsheet()" class="py-2.5 bg-purple-950/80 active:bg-purple-900/80 border border-purple-700/60 text-purple-200 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 active:scale-95 shadow-lg">
+              <i class="fa-solid fa-cloud-arrow-down" id="syncSupabaseIcon"></i> Supabase ➔ Sheet
             </button>
           </div>
         </div>
@@ -526,6 +527,10 @@
           <p class="text-[11px] text-slate-400 leading-relaxed">
             Penyimpanan offline IndexedDB lokal mendukung hingga 70,000+ SKU pada memori HP tanpa lelet.
           </p>
+
+          <button onclick="app.syncSheetMasterToSupabase()" class="w-full py-2.5 bg-gradient-to-r from-brand-600 via-indigo-600 to-purple-600 active:from-brand-500 active:to-purple-500 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 shadow-lg active:scale-95">
+            <i class="fa-solid fa-cloud-arrow-up" id="syncMasterIcon"></i> Sync Sheet Master ➔ Supabase
+          </button>
 
           <div class="grid grid-cols-2 gap-2 pt-1">
             <button onclick="app.seedMockMasterData()" class="py-2.5 bg-slate-800 active:bg-slate-700 border border-slate-700 text-[11px] font-bold text-slate-200 rounded-xl transition flex items-center justify-center gap-1.5 active:scale-95">
@@ -1263,9 +1268,10 @@
           }
         });
 
+        // INTEGRASI SUPABASE POSTGRESQL DENGAN DETEKSI ERROR RESPONSE
         if (state.supabaseClient) {
           try {
-            await state.supabaseClient.from('stock_opname_logs').insert([{
+            const { data, error } = await state.supabaseClient.from('stock_opname_logs').insert([{
               id: logEntry.id,
               timestamp: logEntry.timestamp,
               phase: logEntry.phase,
@@ -1279,8 +1285,15 @@
               qty: logEntry.qty,
               synced_to_sheet: true
             }]);
+
+            if (error) {
+              console.error('Supabase Direct Insert Error:', error);
+              this.showToast(`Supabase: ${error.message} (Jalankan SQL DDL)`, 'amber');
+            } else {
+              console.log('Berhasil tersimpan di Supabase!');
+            }
           } catch(err) {
-            console.error('Supabase direct insert error:', err);
+            console.error('Supabase direct insert exception:', err);
           }
         }
 
@@ -1622,6 +1635,42 @@
         state.masterItemsMap.clear();
         this.updateMasterCountDisplay();
         this.showToast('Cache Master SKU dikosongkan!', 'indigo');
+      },
+
+      async syncSheetMasterToSupabase() {
+        haptics.vibrate(30);
+        const icon = document.getElementById('syncMasterIcon');
+        if (icon) icon.classList.add('fa-spin');
+
+        this.showToast('Mengunggah Master Item dari Sheet ke Supabase...', 'indigo');
+
+        try {
+          const res = await fetch(state.webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action: 'SYNC_MASTER_SHEET_TO_SUPABASE' })
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            if (data.status === 'success') {
+              this.showToast(`Sukses! ${data.totalSynced || 0} SKU Master terupdate ke Supabase!`, 'emerald');
+              audioSynth.playBeep();
+            } else {
+              this.showToast(`Gagal: ${data.message}`, 'rose');
+              audioSynth.playError();
+            }
+          } else {
+            this.showToast('Gagal terhubung ke Webhook Apps Script', 'rose');
+            audioSynth.playError();
+          }
+        } catch (e) {
+          console.error('Error Sync Sheet Master to Supabase:', e);
+          this.showToast('Error koneksi Webhook', 'rose');
+          audioSynth.playError();
+        } finally {
+          if (icon) icon.classList.remove('fa-spin');
+        }
       },
 
       updateMasterCountDisplay() {
