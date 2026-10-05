@@ -369,10 +369,51 @@
                     </button>
                 </div>
 
-                <!-- Search Input for Revisi List -->
-                <div class="relative">
-                    <input type="text" id="input-revisi-list-search" oninput="renderRevisiDataList()" placeholder="Cari nama item, kode item, barcode..." class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-8 pr-3 py-2 text-xs font-semibold outline-none focus:ring-2 focus:ring-rose-500">
-                    <i class="fa-solid fa-magnifying-glass text-slate-400 absolute left-3 top-2.5 text-xs"></i>
+                <!-- MULTI-FILTER CONTAINER UNTUK REVISI SO -->
+                <div class="bg-rose-50/60 border border-rose-100 rounded-xl p-2.5 space-y-2">
+                    <div class="text-[10px] font-extrabold text-rose-900 uppercase tracking-wider flex items-center justify-between">
+                        <span class="flex items-center gap-1">
+                            <i class="fa-solid fa-filter text-rose-600"></i> Filter List Revisi
+                        </span>
+                        <button onclick="resetRevisiFilters()" class="text-[9px] text-rose-600 hover:text-rose-800 font-bold underline">
+                            Reset Filter
+                        </button>
+                    </div>
+
+                    <!-- Dropdowns Filter Petugas & Rak -->
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[9px] font-bold text-slate-500 uppercase mb-0.5">Petugas</label>
+                            <select id="rev-filter-officer" onchange="renderRevisiDataList()" class="w-full bg-white border border-slate-200 rounded-lg p-1.5 text-[11px] font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-rose-500">
+                                <option value="">-- Semua Petugas --</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[9px] font-bold text-slate-500 uppercase mb-0.5">Rak / Lokasi</label>
+                            <select id="rev-filter-rack" onchange="renderRevisiDataList()" class="w-full bg-white border border-slate-200 rounded-lg p-1.5 text-[11px] font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-rose-500">
+                                <option value="">-- Semua Rak --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Dropdown Status & Input Text Search -->
+                    <div class="grid grid-cols-3 gap-2">
+                        <div>
+                            <label class="block text-[9px] font-bold text-slate-500 uppercase mb-0.5">Status Revisi</label>
+                            <select id="rev-filter-status" onchange="renderRevisiDataList()" class="w-full bg-white border border-slate-200 rounded-lg p-1.5 text-[11px] font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-rose-500">
+                                <option value="">Semua Status</option>
+                                <option value="pending">Belum Direvisi</option>
+                                <option value="done">Sudah Direvisi</option>
+                            </select>
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-[9px] font-bold text-slate-500 uppercase mb-0.5">Cari Item / Barcode</label>
+                            <div class="relative">
+                                <input type="text" id="input-revisi-list-search" oninput="renderRevisiDataList()" placeholder="Cari item, original, nama..." class="w-full bg-white border border-slate-200 rounded-lg pl-7 pr-2 py-1.5 text-[11px] font-semibold outline-none focus:ring-2 focus:ring-rose-500">
+                                <i class="fa-solid fa-magnifying-glass text-slate-400 absolute left-2 top-2 text-[10px]"></i>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Cards List of Revision Items -->
@@ -800,7 +841,7 @@
                                 </div>
                                 <p class="text-[11px] text-slate-600 font-medium">Periksa 2 hal berikut pada Google Spreadsheet Anda:</p>
                                 <ul class="text-[10px] text-left list-disc pl-5 space-y-1 text-slate-700 font-semibold bg-white/80 p-2 rounded-lg border border-rose-100">
-                                    <li><strong>1. Akses Spreadsheet:</strong> Klik tombol <span class="bg-indigo-100 text-indigo-800 px-1 py-0.5 rounded font-bold">Bagikan (Share)</span> di Google Sheets &rarr; Ubah Akses Umum menjadi <span class="bg-emerald-100 text-emerald-800 px-1 py-0.5 rounded font-bold">"Siapa saja yang memiliki link" (Pelihat / Viewer)</span>.</li>
+                                    <li><strong>1. Akses Spreadsheet:</strong> Klik tombol <span class="bg-indigo-100 text-indigo-800 px-1 py-0.5 rounded font-bold">Bagikan (Share)</span> &rarr; Ubah Akses Umum menjadi <span class="bg-emerald-100 text-emerald-800 px-1 py-0.5 rounded font-bold">"Siapa saja yang memiliki link" (Pelihat)</span>.</li>
                                     <li><strong>2. Nama Tab:</strong> Pastikan nama tab persis bernama <span class="bg-rose-100 text-rose-900 px-1 py-0.5 rounded font-bold">Revisi SO</span>.</li>
                                 </ul>
                                 <button onclick="fetchRevisiSheetData(true)" class="mt-2 px-3 py-1.5 bg-rose-600 text-white text-[11px] font-extrabold rounded-xl hover:bg-rose-700 shadow-sm flex items-center justify-center space-x-1 mx-auto">
@@ -823,6 +864,8 @@
                 const localRevisions = JSON.parse(localStorage.getItem('so_revisi_cache') || '{}');
 
                 let colIdx = {
+                    petugas: -1,
+                    rak: -1,
                     kode_item: -1,
                     kode_original: -1,
                     nama_item: -1,
@@ -835,7 +878,11 @@
                 const headerRow = lines[0] || [];
                 headerRow.forEach((colName, idx) => {
                     const cleanName = String(colName || '').toLowerCase().trim();
-                    if (cleanName.includes('kode item') || cleanName.includes('kode stock') || cleanName.includes('sku')) {
+                    if (cleanName.includes('petugas') || cleanName.includes('officer')) {
+                        colIdx.petugas = idx;
+                    } else if (cleanName.includes('rak') || cleanName.includes('lokasi')) {
+                        colIdx.rak = idx;
+                    } else if (cleanName.includes('kode item') || cleanName.includes('kode stock') || cleanName.includes('sku')) {
                         colIdx.kode_item = idx;
                     } else if (cleanName.includes('kode original') || cleanName.includes('original') || cleanName.includes('barcode')) {
                         colIdx.kode_original = idx;
@@ -853,6 +900,8 @@
                 });
 
                 // Fallback default index if header missing
+                if (colIdx.petugas === -1) colIdx.petugas = 0; // Col A
+                if (colIdx.rak === -1) colIdx.rak = 1;     // Col B
                 if (colIdx.kode_item === -1) colIdx.kode_item = 2; // Col C
                 if (colIdx.kode_original === -1) colIdx.kode_original = 3; // Col D
                 if (colIdx.nama_item === -1) colIdx.nama_item = 4; // Col E
@@ -865,6 +914,8 @@
                     const row = lines[i];
                     if (!row || row.length < 2) continue;
 
+                    const petugasVal = String(row[colIdx.petugas] || '').trim();
+                    const rakVal = String(row[colIdx.rak] || '').trim();
                     const kodeItem = String(row[colIdx.kode_item] || '').replace(/^['"]+|['"]+$/g, '').trim();
                     const kodeOriginal = String(row[colIdx.kode_original] || '').replace(/^['"]+|['"]+$/g, '').trim();
                     const namaItem = String(row[colIdx.nama_item] || '').trim();
@@ -883,6 +934,8 @@
 
                     if (kodeItem || namaItem) {
                         REVISI_PRODUCTS.push({
+                            petugas: petugasVal || '-',
+                            rak: rakVal || '-',
                             kode_item: kodeItem,
                             kode_original: kodeOriginal,
                             nama_item: namaItem,
@@ -894,9 +947,7 @@
                     }
                 }
 
-                const badge = document.getElementById('count-revisi-badge');
-                if (badge) badge.innerText = REVISI_PRODUCTS.length;
-
+                populateRevisiFilterDropdowns();
                 renderRevisiDataList();
             } catch (err) {
                 console.error("Gagal muat data Revisi SO", err);
@@ -909,6 +960,33 @@
                         </div>`;
                 }
             }
+        }
+
+        function populateRevisiFilterDropdowns() {
+            const dropOfficer = document.getElementById('rev-filter-officer');
+            const dropRack = document.getElementById('rev-filter-rack');
+
+            if (!dropOfficer || !dropRack) return;
+
+            const currentOfficer = dropOfficer.value;
+            const currentRack = dropRack.value;
+
+            const officers = [...new Set(REVISI_PRODUCTS.map(p => p.petugas).filter(p => p && p !== '-'))].sort();
+            const racks = [...new Set(REVISI_PRODUCTS.map(p => p.rak).filter(r => r && r !== '-'))].sort();
+
+            let offHtml = `<option value="">-- Semua Petugas --</option>`;
+            officers.forEach(o => {
+                offHtml += `<option value="${o}">${o}</option>`;
+            });
+            dropOfficer.innerHTML = offHtml;
+            if (officers.includes(currentOfficer)) dropOfficer.value = currentOfficer;
+
+            let rackHtml = `<option value="">-- Semua Rak --</option>`;
+            racks.forEach(r => {
+                rackHtml += `<option value="${r}">${r}</option>`;
+            });
+            dropRack.innerHTML = rackHtml;
+            if (racks.includes(currentRack)) dropRack.value = currentRack;
         }
 
         function parseCSVLines(text) {
@@ -946,16 +1024,37 @@
         function renderRevisiDataList() {
             const container = document.getElementById('revisi-items-card-list');
             const searchVal = (document.getElementById('input-revisi-list-search')?.value || '').toLowerCase().trim();
+            const officerVal = (document.getElementById('rev-filter-officer')?.value || '').toLowerCase().trim();
+            const rackVal = (document.getElementById('rev-filter-rack')?.value || '').toLowerCase().trim();
+            const statusVal = (document.getElementById('rev-filter-status')?.value || '').trim();
+
             if (!container) return;
 
             let filtered = REVISI_PRODUCTS.filter(item => {
-                return item.kode_item.toLowerCase().includes(searchVal) ||
-                       item.kode_original.toLowerCase().includes(searchVal) ||
-                       item.nama_item.toLowerCase().includes(searchVal);
+                const matchesSearch = !searchVal || 
+                    item.kode_item.toLowerCase().includes(searchVal) ||
+                    item.kode_original.toLowerCase().includes(searchVal) ||
+                    item.nama_item.toLowerCase().includes(searchVal);
+
+                const matchesOfficer = !officerVal || item.petugas.toLowerCase() === officerVal;
+                const matchesRack = !rackVal || item.rak.toLowerCase() === rackVal;
+
+                const isRevised = item.qty_revisi !== null && !isNaN(item.qty_revisi);
+                let matchesStatus = true;
+                if (statusVal === 'pending') {
+                    matchesStatus = !isRevised;
+                } else if (statusVal === 'done') {
+                    matchesStatus = isRevised;
+                }
+
+                return matchesSearch && matchesOfficer && matchesRack && matchesStatus;
             });
 
+            const badge = document.getElementById('count-revisi-badge');
+            if (badge) badge.innerText = `${filtered.length} / ${REVISI_PRODUCTS.length}`;
+
             if (filtered.length === 0) {
-                container.innerHTML = `<div class="py-6 text-center text-slate-400 text-xs">Tidak ada data item revisi yang cocok.</div>`;
+                container.innerHTML = `<div class="py-8 text-center text-slate-400 text-xs">Tidak ada data item revisi yang cocok dengan filter.</div>`;
                 return;
             }
 
@@ -969,13 +1068,17 @@
                 html += `
                     <div class="bg-white border border-slate-200 rounded-xl p-3 shadow-sm space-y-2 hover:border-rose-300 transition">
                         <div class="flex justify-between items-start">
-                            <div class="space-y-0.5">
-                                <div class="flex items-center space-x-1.5 flex-wrap gap-1">
+                            <div class="space-y-1">
+                                <div class="flex items-center space-x-1 flex-wrap gap-1">
                                     <span class="bg-rose-600 text-white font-mono text-[10px] font-black px-1.5 py-0.5 rounded">${item.kode_item}</span>
                                     <span class="bg-slate-100 text-slate-600 font-mono text-[9px] font-bold px-1 py-0.5 rounded">${item.kode_original || '-'}</span>
                                     ${statusBadge}
                                 </div>
-                                <div class="font-extrabold text-xs text-slate-800 pt-1 leading-snug">${item.nama_item}</div>
+                                <div class="font-extrabold text-xs text-slate-800 pt-0.5 leading-snug">${item.nama_item}</div>
+                                <div class="flex items-center space-x-1.5 text-[9px] text-slate-500 pt-0.5">
+                                    <span class="bg-indigo-50 text-indigo-700 font-bold px-1.5 py-0.5 rounded border border-indigo-100"><i class="fa-solid fa-user text-[8px] mr-1"></i>${item.petugas}</span>
+                                    <span class="bg-slate-100 text-slate-700 font-bold px-1.5 py-0.5 rounded border border-slate-200"><i class="fa-solid fa-location-dot text-[8px] mr-1"></i>${item.rak}</span>
+                                </div>
                             </div>
                         </div>
 
@@ -1009,6 +1112,14 @@
             });
 
             container.innerHTML = html;
+        }
+
+        function resetRevisiFilters() {
+            if (document.getElementById('rev-filter-officer')) document.getElementById('rev-filter-officer').value = "";
+            if (document.getElementById('rev-filter-rack')) document.getElementById('rev-filter-rack').value = "";
+            if (document.getElementById('rev-filter-status')) document.getElementById('rev-filter-status').value = "";
+            if (document.getElementById('input-revisi-list-search')) document.getElementById('input-revisi-list-search').value = "";
+            renderRevisiDataList();
         }
 
         function selectRevisiItemDirect(kodeItem) {
