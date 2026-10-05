@@ -1369,8 +1369,11 @@
           officer: state.session.officer,
           rack: state.session.rack,
           sku: state.selectedItem.sku,
-          barcode: state.selectedItem.barcode || '-',
-          name: state.selectedItem.name,
+          kode_item: state.selectedItem.sku,
+          kode_original: state.selectedItem.kode_original || state.selectedItem.barcode || '-',
+          barcode: state.selectedItem.barcode || state.selectedItem.kode_original || '-',
+          name: state.selectedItem.name || state.selectedItem.nama_item,
+          nama_item: state.selectedItem.nama_item || state.selectedItem.name,
           family: state.selectedItem.family || 'GENERAL',
           qty: qty,
           synced: false
@@ -1394,17 +1397,17 @@
           }
         });
 
-        // INTEGRASI SUPABASE POSTGRESQL
+        // INTEGRASI SUPABASE POSTGRESQL (Auto-upsert product reference & log)
         if (state.supabaseClient) {
           try {
             if (state.selectedItem && state.selectedItem.sku) {
               await state.supabaseClient.from('products').upsert([{
                 sku: state.selectedItem.sku,
                 kode_item: state.selectedItem.sku,
-                barcode: state.selectedItem.barcode || '-',
-                kode_original: state.selectedItem.barcode || '-',
-                name: state.selectedItem.name || state.selectedItem.sku,
-                nama_item: state.selectedItem.name || state.selectedItem.sku,
+                kode_original: state.selectedItem.kode_original || state.selectedItem.barcode || '-',
+                barcode: state.selectedItem.barcode || state.selectedItem.kode_original || '-',
+                name: state.selectedItem.name || state.selectedItem.nama_item || state.selectedItem.sku,
+                nama_item: state.selectedItem.nama_item || state.selectedItem.name || state.selectedItem.sku,
                 family: state.selectedItem.family || 'GENERAL'
               }], { onConflict: 'sku' });
             }
@@ -1418,10 +1421,10 @@
               rack: logEntry.rack,
               sku: logEntry.sku,
               kode_item: logEntry.sku,
+              kode_original: logEntry.kode_original,
               barcode: logEntry.barcode,
-              kode_original: logEntry.barcode,
               name: logEntry.name,
-              nama_item: logEntry.name,
+              nama_item: logEntry.nama_item,
               family: logEntry.family,
               qty: logEntry.qty,
               synced_to_sheet: true
@@ -2333,6 +2336,13 @@ CREATE TABLE IF NOT EXISTS public.products (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Auto-migration for existing tables
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS kode_item VARCHAR(100);
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS kode_original VARCHAR(100);
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS barcode VARCHAR(100);
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS nama_item TEXT;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS family VARCHAR(100) DEFAULT 'GENERAL';
+
 CREATE INDEX IF NOT EXISTS idx_products_barcode ON public.products(barcode);
 CREATE INDEX IF NOT EXISTS idx_products_kode_original ON public.products(kode_original);
 CREATE INDEX IF NOT EXISTS idx_products_family ON public.products(family);
@@ -2357,6 +2367,12 @@ CREATE TABLE IF NOT EXISTS public.stock_opname_logs (
     synced_to_sheet BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+ALTER TABLE public.stock_opname_logs ADD COLUMN IF NOT EXISTS kode_item VARCHAR(100);
+ALTER TABLE public.stock_opname_logs ADD COLUMN IF NOT EXISTS kode_original VARCHAR(100);
+ALTER TABLE public.stock_opname_logs ADD COLUMN IF NOT EXISTS barcode VARCHAR(100);
+ALTER TABLE public.stock_opname_logs ADD COLUMN IF NOT EXISTS nama_item TEXT;
+ALTER TABLE public.stock_opname_logs ADD COLUMN IF NOT EXISTS family VARCHAR(100) DEFAULT 'GENERAL';
 
 ALTER TABLE public.stock_opname_logs DROP CONSTRAINT IF EXISTS stock_opname_logs_sku_fkey;`;
 
