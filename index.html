@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Stock Opname Mobile Pro - Friendly Edition</title>
+  <title>Stock Opname Mobile Pro - Smartphone Edition</title>
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -133,6 +133,12 @@
           <i class="fa-solid fa-file-excel text-emerald-400"></i>
           <span class="text-[10px] font-bold hidden sm:inline">Sheet</span>
         </a>
+
+        <!-- TOMBOL SYNC SUPABASE KE SPREADSHEET -->
+        <button id="btnSyncSupabaseToSheet" onclick="app.syncSupabaseToSpreadsheet()" title="Sinkronkan data Supabase ke Google Spreadsheet" class="bg-purple-950/90 active:scale-95 text-purple-200 text-xs px-2.5 py-1.5 rounded-xl border border-purple-700/80 flex items-center gap-1.5 transition shadow">
+          <i class="fa-solid fa-cloud-arrow-up text-purple-400 text-xs" id="syncSupabaseIcon"></i>
+          <span class="text-[10px] font-bold">Sync DB➔Sheet</span>
+        </button>
 
         <button id="btnSyncQueue" onclick="app.syncPendingQueue()" class="relative bg-slate-800/90 active:scale-95 text-slate-200 text-xs px-2.5 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition shadow">
           <i class="fa-solid fa-arrows-rotate text-brand-400 text-xs" id="syncIcon"></i>
@@ -445,14 +451,14 @@
             <span class="text-[9px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-md border border-emerald-500/30 font-mono font-bold">LIVE SYNC</span>
           </div>
           <p class="text-[11px] text-slate-300 leading-relaxed">
-            Aplikasi terhubung secara real-time dengan Spreadsheet target. Klik tombol di bawah untuk membuka spreadsheet di browser atau aplikasi Google Sheets.
+            Aplikasi terhubung secara real-time dengan Supabase PostgreSQL & Google Spreadsheet target.
           </p>
-          <div class="flex items-center gap-2 pt-1">
-            <a href="https://docs.google.com/spreadsheets/d/1iwIUex4VL_P1ORfPzTUKRgFvg_9bJsoEjdaNi605C_Y/edit?gid=1413100930#gid=1413100930" target="_blank" class="flex-1 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 active:from-emerald-500 active:to-teal-500 text-white font-bold text-xs rounded-xl transition text-center shadow-lg flex items-center justify-center gap-1.5 active:scale-95">
-              <i class="fa-solid fa-arrow-up-right-from-square"></i> Buka Google Spreadsheet
-            </a>
-            <button onclick="app.syncAllFromSpreadsheet()" class="px-3 py-2.5 bg-slate-800 active:bg-slate-700 text-emerald-400 border border-emerald-700/60 font-bold text-xs rounded-xl flex items-center gap-1.5 active:scale-95">
-              <i class="fa-solid fa-cloud-arrow-down" id="syncSheetIcon"></i> Tarik Data
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <button onclick="app.syncSupabaseToSpreadsheet()" class="py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 active:from-purple-500 active:to-indigo-500 text-white font-bold text-xs rounded-xl transition text-center shadow-lg flex items-center justify-center gap-1.5 active:scale-95">
+              <i class="fa-solid fa-cloud-arrow-up"></i> Sync Supabase ➔ Sheet
+            </button>
+            <button onclick="app.syncAllFromSpreadsheet()" class="py-2.5 bg-slate-800 active:bg-slate-700 text-emerald-400 border border-emerald-700/60 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 active:scale-95">
+              <i class="fa-solid fa-cloud-arrow-down" id="syncSheetIcon"></i> Tarik Sheet ➔ HP
             </button>
           </div>
         </div>
@@ -705,7 +711,7 @@
   <!-- JAVASCRIPT APPLICATION CORE LOGIC                                 -->
   <!-- ================================================================= -->
   <script>
-    const DEFAULT_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbxem_4NpNyaqDpcPehmVI02wZisi9Rb7f-ZBA1Qvy2OIp_rMmKpdGk3zuIh8fT4i_wIyA/exec";
+    const DEFAULT_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbys4vTQjNyUII6PUOv8TMJK4O1efanK4XW0g1Zzq3uRJ0uSjXYRptwdm6Yv4Yk0F7w83A/exec";
     const DEFAULT_SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1iwIUex4VL_P1ORfPzTUKRgFvg_9bJsoEjdaNi605C_Y/edit?gid=1413100930#gid=1413100930";
     const DEFAULT_SUPABASE_URL = "https://qtfyfrvrqvbgyaezorbb.supabase.co";
     const DEFAULT_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF0ZnlmcnZycXZiZ3lhZXpvcmJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA4OTkyNzIsImV4cCI6MjEwNjQ3NTI3Mn0.vL8COXCm7UrhoMSj0iBV8HwvN6VZtd8X08YbxSkLcQM";
@@ -933,151 +939,47 @@
         }
       },
 
-      showSupabaseSqlModal() {
-        haptics.vibrate(20);
-        const sql = `-- =================================================================
--- SCRIPT DDL SUPABASE POSTGRESQL - STOCK OPNAME MOBILE PRO (70K SKU)
--- =================================================================
+      async syncSupabaseToSpreadsheet() {
+        haptics.vibrate(30);
+        const icon = document.getElementById('syncSupabaseIcon');
+        if (icon) icon.classList.add('fa-spin');
 
-CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+        this.showToast('Memulai Sync Supabase ➔ Spreadsheet...', 'indigo');
 
--- 1. TABEL PRODUCTS / MASTER 70K SKU
-CREATE TABLE IF NOT EXISTS public.products (
-    sku VARCHAR(100) PRIMARY KEY,
-    barcode VARCHAR(100),
-    name TEXT NOT NULL,
-    family VARCHAR(100) DEFAULT 'GENERAL',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_products_barcode ON public.products(barcode);
-CREATE INDEX IF NOT EXISTS idx_products_family ON public.products(family);
-CREATE INDEX IF NOT EXISTS idx_products_name_trgm ON public.products USING gin(name gin_trgm_ops);
-
--- 2. TABEL STOCK OPNAME LOGS
-CREATE TABLE IF NOT EXISTS public.stock_opname_logs (
-    id VARCHAR(100) PRIMARY KEY,
-    timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    phase VARCHAR(50) NOT NULL DEFAULT 'Fase 1',
-    team VARCHAR(50) NOT NULL,
-    officer VARCHAR(100) NOT NULL,
-    rack VARCHAR(100) NOT NULL,
-    sku VARCHAR(100) REFERENCES public.products(sku) ON DELETE SET NULL,
-    barcode VARCHAR(100),
-    name TEXT NOT NULL,
-    family VARCHAR(100) DEFAULT 'GENERAL',
-    qty INT NOT NULL DEFAULT 1,
-    synced_to_sheet BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_so_logs_rack ON public.stock_opname_logs(rack);
-CREATE INDEX IF NOT EXISTS idx_so_logs_officer ON public.stock_opname_logs(officer);
-CREATE INDEX IF NOT EXISTS idx_so_logs_team ON public.stock_opname_logs(team);
-CREATE INDEX IF NOT EXISTS idx_so_logs_sku ON public.stock_opname_logs(sku);
-
--- 3. TABEL OFFICERS
-CREATE TABLE IF NOT EXISTS public.officers (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    team VARCHAR(50) NOT NULL,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    CONSTRAINT unique_officer_team UNIQUE (name, team)
-);
-
-INSERT INTO public.officers (name, team) VALUES
-('Budi Surtok', 'SURTOK'),
-('Andi Surtok', 'SURTOK'),
-('Dedi Surtok', 'SURTOK'),
-('Eko Surtok', 'SURTOK'),
-('Hendra Audit', 'AUDIT'),
-('Siti Audit', 'AUDIT'),
-('Rina Audit', 'AUDIT'),
-('Maya Audit', 'AUDIT')
-ON CONFLICT (name, team) DO NOTHING;
-
--- 4. TABEL REVISI LOGS
-CREATE TABLE IF NOT EXISTS public.revisi_logs (
-    id VARCHAR(100) PRIMARY KEY,
-    rack VARCHAR(100) NOT NULL,
-    officer VARCHAR(100) NOT NULL,
-    sku VARCHAR(100) NOT NULL,
-    barcode VARCHAR(100),
-    name TEXT NOT NULL,
-    audit INT DEFAULT 0,
-    surtok INT DEFAULT 0,
-    selisih INT DEFAULT 0,
-    qty_revisi INT,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_revisi_rack ON public.revisi_logs(rack);
-CREATE INDEX IF NOT EXISTS idx_revisi_officer ON public.revisi_logs(officer);
-
--- RLS POLICIES
-ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.stock_opname_logs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.officers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.revisi_logs ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Public All Products" ON public.products FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Public All SO Logs" ON public.stock_opname_logs FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Public All Officers" ON public.officers FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Public All Revisi Logs" ON public.revisi_logs FOR ALL USING (true) WITH CHECK (true);
-`;
-        document.getElementById('supabaseSqlCodeContainer').textContent = sql;
-        document.getElementById('supabaseSqlModal').classList.remove('hidden');
-      },
-
-      copySupabaseSqlCode() {
-        haptics.vibrate(20);
-        const text = document.getElementById('supabaseSqlCodeContainer').textContent;
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        this.showToast('Script SQL Supabase Disalin!', 'emerald');
-      },
-
-      switchTab(tabKey) {
-        haptics.vibrate(20);
-        state.currentTab = tabKey;
-        ['so', 'revisi', 'admin'].forEach(key => {
-          const pageEl = document.getElementById(`page-${key}`);
-          const btnEl = document.getElementById(`tabBtn-${key}`);
-          if (key === tabKey) {
-            pageEl.classList.remove('hidden');
-            btnEl.className = "flex flex-col items-center justify-center py-1 rounded-xl text-brand-400 font-bold text-[10px] transition active:scale-95";
-          } else {
-            pageEl.classList.add('hidden');
-            btnEl.className = "flex flex-col items-center justify-center py-1 rounded-xl text-slate-400 font-medium text-[10px] transition active:scale-95 relative";
+        try {
+          const res = await fetch(`${state.webhookUrl}?action=SYNC_SUPABASE`);
+          let webhookSuccess = false;
+          if (res.ok) {
+            const result = await res.json();
+            if (result.status === 'success') {
+              webhookSuccess = true;
+            }
           }
-        });
-      },
 
-      switchSoSubView(subKey) {
-        haptics.vibrate(15);
-        state.currentSoSubView = subKey;
-        const inputView = document.getElementById('soSubViewInput');
-        const hasilView = document.getElementById('soSubViewHasil');
-        const btnInput = document.getElementById('btnSubTabInput');
-        const btnHasil = document.getElementById('btnSubTabHasil');
+          if (state.supabaseClient) {
+            const unsyncedLogs = state.soLogs.filter(l => !l.synced);
+            for (let log of unsyncedLogs) {
+              const ok = await this.postToWebhook({
+                action: 'SAVE_SO_FISIK',
+                data: log
+              });
+              if (ok) {
+                log.synced = true;
+              }
+            }
+            localStorage.setItem('so_logs', JSON.stringify(state.soLogs));
+          }
 
-        if (subKey === 'input') {
-          inputView.classList.remove('hidden');
-          hasilView.classList.add('hidden');
-          btnInput.className = "py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 text-white shadow-md transition flex items-center justify-center gap-2 active:scale-95";
-          btnHasil.className = "py-2.5 rounded-xl text-slate-400 hover:text-white transition flex items-center justify-center gap-2 active:scale-95";
-        } else {
-          inputView.classList.add('hidden');
-          hasilView.classList.remove('hidden');
-          btnHasil.className = "py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 text-white shadow-md transition flex items-center justify-center gap-2 active:scale-95";
-          btnInput.className = "py-2.5 rounded-xl text-slate-400 hover:text-white transition flex items-center justify-center gap-2 active:scale-95";
-          this.renderHasilSoTable();
+          await this.syncAllFromSpreadsheet(false);
+          this.showToast('Sukses! Data Supabase tersinkron ke Spreadsheet!', 'emerald');
+          audioSynth.playBeep();
+
+        } catch (err) {
+          console.error('Sync Supabase to Sheet Error:', err);
+          this.showToast('Gagal sinkronisasi Supabase ke Sheet', 'rose');
+          audioSynth.playError();
+        } finally {
+          if (icon) icon.classList.remove('fa-spin');
         }
       },
 
@@ -1346,7 +1248,6 @@ CREATE POLICY "Public All Revisi Logs" ON public.revisi_logs FOR ALL USING (true
         state.soLogs.unshift(logEntry);
         localStorage.setItem('so_logs', JSON.stringify(state.soLogs));
 
-        // Dual Sync 1: Webhook Google Apps Script
         this.postToWebhook({
           action: 'SAVE_SO_FISIK',
           data: logEntry
@@ -1362,7 +1263,6 @@ CREATE POLICY "Public All Revisi Logs" ON public.revisi_logs FOR ALL USING (true
           }
         });
 
-        // Dual Sync 2: Supabase PostgreSQL
         if (state.supabaseClient) {
           try {
             await state.supabaseClient.from('stock_opname_logs').insert([{
@@ -1830,6 +1730,44 @@ CREATE POLICY "Public All Revisi Logs" ON public.revisi_logs FOR ALL USING (true
         }
       },
 
+      switchTab(tab) {
+        haptics.vibrate(15);
+        state.currentTab = tab;
+        ['so', 'revisi', 'admin'].forEach(t => {
+          document.getElementById(`page-${t}`).classList.add('hidden');
+          const btn = document.getElementById(`tabBtn-${t}`);
+          btn.className = "flex flex-col items-center justify-center py-1 rounded-xl text-slate-400 font-medium text-[10px] transition active:scale-95";
+        });
+
+        document.getElementById(`page-${tab}`).classList.remove('hidden');
+        const activeBtn = document.getElementById(`tabBtn-${tab}`);
+        activeBtn.className = "flex flex-col items-center justify-center py-1 rounded-xl text-brand-400 font-bold text-[10px] transition active:scale-95";
+
+        if (tab === 'revisi') this.fetchRevisiSheetData();
+      },
+
+      switchSoSubView(sub) {
+        haptics.vibrate(15);
+        state.currentSoSubView = sub;
+        const btnInput = document.getElementById('btnSubTabInput');
+        const btnHasil = document.getElementById('btnSubTabHasil');
+        const viewInput = document.getElementById('soSubViewInput');
+        const viewHasil = document.getElementById('soSubViewHasil');
+
+        if (sub === 'input') {
+          viewInput.classList.remove('hidden');
+          viewHasil.classList.add('hidden');
+          btnInput.className = "py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 text-white shadow-md transition flex items-center justify-center gap-2 active:scale-95";
+          btnHasil.className = "py-2.5 rounded-xl text-slate-400 hover:text-white transition flex items-center justify-center gap-2 active:scale-95";
+        } else {
+          viewInput.classList.add('hidden');
+          viewHasil.classList.remove('hidden');
+          btnHasil.className = "py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 text-white shadow-md transition flex items-center justify-center gap-2 active:scale-95";
+          btnInput.className = "py-2.5 rounded-xl text-slate-400 hover:text-white transition flex items-center justify-center gap-2 active:scale-95";
+          this.renderHasilSoTable();
+        }
+      },
+
       exportHasilSoCsv() {
         haptics.vibrate(30);
         if (state.soLogs.length === 0) {
@@ -1861,6 +1799,9 @@ CREATE POLICY "Public All Revisi Logs" ON public.revisi_logs FOR ALL USING (true
       showGasBackendCodeModal() {
         haptics.vibrate(20);
         const gasCode = `function doPost(e) {
+  if (!e || !e.postData || !e.postData.contents) {
+    return createJsonResponse({ status: "error", message: "Direct execution detected." });
+  }
   var lock = LockService.getScriptLock();
   if (!lock.tryLock(10000)) {
     return createJsonResponse({ status: "error", message: "Server busy lock timeout" });
@@ -1896,93 +1837,11 @@ CREATE POLICY "Public All Revisi Logs" ON public.revisi_logs FOR ALL USING (true
       sheet.appendRow(newRow);
       return createJsonResponse({status: "success"});
     }
-    
-    if (action === "UPDATE_QTY_REVISI") {
-      var sheet = ss.getSheetByName("Revisi Double Cek SO");
-      var dataValues = sheet.getDataRange().getDisplayValues();
-      var headers = dataValues[0];
-      
-      var skuCol = headers.indexOf("Kode Item");
-      if (skuCol === -1) skuCol = headers.indexOf("Kode Item / SKU");
-      var qtyRevCol = headers.indexOf("QTY Revisi");
-      if (qtyRevCol === -1) qtyRevCol = headers.indexOf("Qty Revisi");
-      
-      for (var i = 1; i < dataValues.length; i++) {
-        if (dataValues[i][skuCol] === contents.data.sku) {
-          sheet.getRange(i + 1, qtyRevCol + 1).setValue(contents.data.qtyRevisi);
-          break;
-        }
-      }
-      return createJsonResponse({status: "success"});
-    }
   } catch (err) {
     return createJsonResponse({status: "error", message: err.toString()});
   } finally {
     lock.releaseLock();
   }
-}
-
-function doGet(e) {
-  var action = e ? e.parameter.action : "";
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  
-  if (action === "GET_INITIAL_DATA" || action === "GET_ALL") {
-    return createJsonResponse({
-      status: "success",
-      officers: fetchOfficers(ss),
-      revisiItems: fetchRevisiList(ss)
-    });
-  }
-}
-
-function fetchOfficers(ss) {
-  var sheet = ss.getSheetByName("Petugas");
-  var officers = { SURTOK: [], AUDIT: [] };
-  if (!sheet) return officers;
-  var values = sheet.getDataRange().getDisplayValues();
-  for (var i = 1; i < values.length; i++) {
-    if (values[i][0]) officers.SURTOK.push(values[i][0].trim());
-    if (values[i][1]) officers.AUDIT.push(values[i][1].trim());
-  }
-  return officers;
-}
-
-function fetchRevisiList(ss) {
-  var sheet = ss.getSheetByName("Revisi Double Cek SO");
-  if (!sheet) return [];
-  var values = sheet.getDataRange().getDisplayValues();
-  if (values.length <= 1) return [];
-  var headers = values[0];
-  var list = [];
-  for (var i = 1; i < values.length; i++) {
-    var row = values[i];
-    list.push({
-      id: "REV-" + i,
-      officer: row[headers.indexOf("Petugas")],
-      rack: row[headers.indexOf("Rak")],
-      sku: row[headers.indexOf("Kode Item")],
-      barcode: row[headers.indexOf("Kode Original")],
-      name: row[headers.indexOf("Nama Item")],
-      audit: parseInt(row[headers.indexOf("Audit")]) || 0,
-      surtok: parseInt(row[headers.indexOf("Surtok")]) || 0,
-      selisih: parseInt(row[headers.indexOf("Selisih")]) || 0,
-      qtyRevisi: row[headers.indexOf("QTY Revisi")]
-    });
-  }
-  return list;
-}
-
-function getHeaderMap(existingHeaders, requiredHeaders) {
-  var map = {};
-  requiredHeaders.forEach(function(h, idx) {
-    var pos = existingHeaders.indexOf(h);
-    map[h] = pos !== -1 ? pos : idx;
-  });
-  return map;
-}
-
-function createJsonResponse(data) {
-  return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
 }`;
 
         document.getElementById('gasCodeContainer').textContent = gasCode;
@@ -1999,6 +1858,51 @@ function createJsonResponse(data) {
         document.execCommand('copy');
         document.body.removeChild(textarea);
         this.showToast('Kode Script disalin!', 'emerald');
+      },
+
+      showSupabaseSqlModal() {
+        haptics.vibrate(20);
+        const sqlCode = `-- SUPABASE POSTGRESQL DDL SCHEMA
+CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+
+CREATE TABLE IF NOT EXISTS public.products (
+    sku VARCHAR(100) PRIMARY KEY,
+    barcode VARCHAR(100),
+    name TEXT NOT NULL,
+    family VARCHAR(100) DEFAULT 'GENERAL',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.stock_opname_logs (
+    id VARCHAR(100) PRIMARY KEY,
+    timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    phase VARCHAR(50) DEFAULT 'Fase 1',
+    team VARCHAR(50) NOT NULL,
+    officer VARCHAR(100) NOT NULL,
+    rack VARCHAR(100) NOT NULL,
+    sku VARCHAR(100),
+    barcode VARCHAR(100),
+    name TEXT NOT NULL,
+    family VARCHAR(100) DEFAULT 'GENERAL',
+    qty INT DEFAULT 1,
+    synced_to_sheet BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);`;
+
+        document.getElementById('supabaseSqlCodeContainer').textContent = sqlCode;
+        document.getElementById('supabaseSqlModal').classList.remove('hidden');
+      },
+
+      copySupabaseSqlCode() {
+        haptics.vibrate(20);
+        const text = document.getElementById('supabaseSqlCodeContainer').textContent;
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        this.showToast('Script SQL disalin!', 'emerald');
       },
 
       showToast(msg, theme = 'emerald') {
