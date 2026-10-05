@@ -899,16 +899,15 @@
                     }
                 });
 
-                // Fallback default index if header missing
-                if (colIdx.petugas === -1) colIdx.petugas = 0; // Col A
-                if (colIdx.rak === -1) colIdx.rak = 1;     // Col B
-                if (colIdx.kode_item === -1) colIdx.kode_item = 2; // Col C
-                if (colIdx.kode_original === -1) colIdx.kode_original = 3; // Col D
-                if (colIdx.nama_item === -1) colIdx.nama_item = 4; // Col E
-                if (colIdx.qty_so === -1) colIdx.qty_so = 5; // Col F
-                if (colIdx.qty_onhand === -1) colIdx.qty_onhand = 6; // Col G
-                if (colIdx.selisih === -1) colIdx.selisih = 7; // Col H
-                if (colIdx.qty_revisi === -1) colIdx.qty_revisi = 8; // Col I
+                if (colIdx.petugas === -1) colIdx.petugas = 0;
+                if (colIdx.rak === -1) colIdx.rak = 1;
+                if (colIdx.kode_item === -1) colIdx.kode_item = 2;
+                if (colIdx.kode_original === -1) colIdx.kode_original = 3;
+                if (colIdx.nama_item === -1) colIdx.nama_item = 4;
+                if (colIdx.qty_so === -1) colIdx.qty_so = 5;
+                if (colIdx.qty_onhand === -1) colIdx.qty_onhand = 6;
+                if (colIdx.selisih === -1) colIdx.selisih = 7;
+                if (colIdx.qty_revisi === -1) colIdx.qty_revisi = 8;
 
                 for (let i = 1; i < lines.length; i++) {
                     const row = lines[i];
@@ -1394,9 +1393,41 @@
                     nama_barang: currentProduct.nama_barang,
                     family: currentProduct.family || '-',
                     qty_fisik: qtyVal,
+                    synced_supabase: false,
                     synced_gsheet: false
                 };
 
+                // ALUR UTAMA: SIMPAN KE SUPABASE DB TERLEBIH DAHULU
+                if (supabaseClient) {
+                    try {
+                        const { data: dbData, error: dbError } = await supabaseClient
+                            .from('stock_opname_logs')
+                            .insert([{
+                                id: record.id,
+                                timestamp: new Date().toISOString(),
+                                petugas: record.petugas,
+                                peran: record.peran,
+                                rak: record.rak,
+                                kode_stock: record.kode_stock,
+                                original_code: record.original_code,
+                                nama_barang: record.nama_barang,
+                                family: record.family,
+                                qty_fisik: record.qty_fisik,
+                                synced_supabase: true,
+                                synced_gsheet: false
+                            }]);
+
+                        if (!dbError) {
+                            record.synced_supabase = true;
+                        } else {
+                            console.warn("Supabase Insert Warn:", dbError);
+                        }
+                    } catch (e) {
+                        console.warn("Supabase Insert Ex:", e);
+                    }
+                }
+
+                // BACKUP DIRECT WEBHOOK PUSH (Jika Supabase Trigger belum terkonfigurasi)
                 const okGSheet = await postToWebhook({ record });
                 if (okGSheet) record.synced_gsheet = true;
 
