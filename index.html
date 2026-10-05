@@ -1,1642 +1,2034 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="h-full bg-slate-950 text-slate-100 selection:bg-brand-500 selection:text-white">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Stock Opname Mobile Pro - Supabase & Google Sheets Sync</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Stock Opname Mobile Pro - Friendly Edition</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              400: '#38bdf8',
+              500: '#0284c7',
+              600: '#0369a1',
+              700: '#075985',
+              900: '#0c4a6e',
+            },
+            surtok: {
+              500: '#10b981',
+              600: '#059669',
+            },
+            audit: {
+              500: '#8b5cf6',
+              600: '#7c3aed',
+            }
+          },
+          fontFamily: {
+            mono: ['JetBrains Mono', 'Courier New', 'monospace'],
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
 
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome CDN for Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Html5Qrcode for Mobile Camera Barcode Scanning -->
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-    <!-- SheetJS for Excel Exporting -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- Supabase JS v2 Client -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Html5Qrcode Scanner -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-            -webkit-tap-highlight-color: transparent;
-            touch-action: manipulation;
-        }
-        ::-webkit-scrollbar {
-            width: 4px;
-            height: 4px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-        }
-        .scanner-viewport video {
-            object-fit: cover !important;
-            border-radius: 0.75rem;
-            width: 100% !important;
-        }
-        .btn-touch {
-            min-height: 44px;
-            user-select: none;
-        }
-        .btn-touch:active {
-            transform: scale(0.97);
-        }
-    </style>
+  <!-- Supabase JS Client v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    .pb-safe {
+      padding-bottom: max(env(safe-area-inset-bottom, 16px), 16px);
+    }
+    .pt-safe {
+      padding-top: max(env(safe-area-inset-top, 12px), 12px);
+    }
+    .glass-card {
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-card-active {
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(51, 65, 85, 0.8);
+      border-radius: 9999px;
+    }
+    #reader video {
+      object-fit: cover !important;
+      border-radius: 1.5rem;
+      width: 100% !important;
+      height: 100% !important;
+    }
+    button, input, select, a {
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    @keyframes scan-laser {
+      0% { top: 12%; opacity: 0.8; }
+      50% { top: 88%; opacity: 1; }
+      100% { top: 12%; opacity: 0.8; }
+    }
+    .laser-line {
+      animation: scan-laser 1.8s infinite ease-in-out;
+    }
+    .mobile-app-shell {
+      max-width: 480px;
+      margin-left: auto;
+      margin-right: auto;
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+      box-shadow: 0 0 60px rgba(0,0,0,0.9);
+      position: relative;
+    }
+  </style>
 </head>
-<body class="bg-slate-100 min-h-screen text-slate-800 pb-20">
 
-    <header class="bg-indigo-700 text-white shadow-md sticky top-0 z-30">
-        <div class="max-w-md mx-auto px-3 py-2.5 flex items-center justify-between">
-            <div class="flex items-center space-x-2">
-                <div class="bg-indigo-800 p-2 rounded-xl text-indigo-200 flex items-center justify-center">
-                    <i class="fa-solid fa-boxes-stacked text-lg"></i>
-                </div>
-                <div>
-                    <h1 class="font-black text-base leading-tight tracking-tight flex items-center gap-1.5">
-                        Opname Pro
-                        <span class="text-[9px] bg-emerald-500 text-white px-1.5 py-0.5 rounded font-bold uppercase">70k SKU</span>
-                    </h1>
-                    <p class="text-[10px] text-indigo-200 flex items-center space-x-1">
-                        <span id="header-sku-count" class="font-bold text-emerald-300">0</span>
-                        <span>SKU Sync</span>
-                    </p>
-                </div>
-            </div>
+<body class="h-full flex flex-col font-sans bg-slate-950 text-slate-100 overflow-x-hidden antialiased selection:bg-brand-500 selection:text-white">
 
-            <!-- Action buttons Header -->
-            <div class="flex items-center space-x-1.5">
-                <button onclick="fetchAllData()" id="btn-sync-all" title="Sync ulang Master Data SKU & Petugas" class="flex items-center space-x-1 text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded-full transition shadow-sm border border-emerald-400/40 btn-touch">
-                    <i class="fa-solid fa-arrows-rotate text-xs" id="icon-sync-spin"></i>
-                    <span class="font-bold hidden sm:inline">Sync Data</span>
-                </button>
-                <button onclick="openConfigModal()" class="flex items-center space-x-1 text-[11px] bg-indigo-800/80 hover:bg-indigo-900 px-2.5 py-1.5 rounded-full transition border border-indigo-500/30 btn-touch">
-                    <i class="fa-solid fa-sliders text-amber-300 text-xs"></i>
-                    <span class="font-semibold text-[10px]">Settings</span>
-                </button>
-            </div>
+  <div class="mobile-app-shell flex flex-col w-full bg-slate-950 min-h-screen">
+
+    <!-- TOP MOBILE APP BAR -->
+    <header class="sticky top-0 z-30 bg-slate-900/95 border-b border-slate-800/80 backdrop-blur-xl px-3.5 py-2.5 pt-safe flex items-center justify-between shadow-2xl">
+      <div class="flex items-center space-x-2.5">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-brand-500 via-indigo-600 to-emerald-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/20 shrink-0">
+          <i class="fa-solid fa-boxes-packing text-lg"></i>
         </div>
-
-        <div class="bg-indigo-900/90 border-t border-indigo-600/50 px-3 py-1 text-[10px] flex justify-between items-center text-indigo-200 max-w-md mx-auto">
-            <div class="flex items-center space-x-2 truncate pr-2">
-                <span id="supabase-status-badge" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-800 text-slate-300 border border-slate-600 flex items-center space-x-1">
-                    <i class="fa-solid fa-database text-[9px]"></i>
-                    <span id="supabase-status-text">Supabase Off</span>
-                </span>
-                <span id="webhook-sync-indicator" onclick="openConfigModal()" class="cursor-pointer px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/30 text-amber-200 border border-amber-400/30 flex items-center space-x-1">
-                    <i class="fa-solid fa-sheet-plastic text-[9px]"></i>
-                    <span id="webhook-status-label">GSheet Off</span>
-                </span>
-            </div>
-            <div class="flex items-center space-x-2 shrink-0">
-                <div id="auto-sync-status-badge" class="hidden px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center space-x-1 animate-pulse">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
-                    <span>Auto-Sync ON</span>
-                </div>
-                <div id="sync-time-badge" class="font-mono text-[9px] text-indigo-300">
-                    Belum Sync
-                </div>
-            </div>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <h1 class="text-sm font-black tracking-tight text-white leading-none">SO Mobile Pro</h1>
+            <span class="text-[9px] px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 font-mono font-bold border border-emerald-500/30">70k SKU</span>
+          </div>
+          <p class="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5 font-mono" id="headerSessionBadge">
+            <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Sesi Belum Dikunci
+          </p>
         </div>
+      </div>
 
-        <div class="bg-indigo-950 border-t border-indigo-800 px-2 py-1.5 max-w-md mx-auto">
-            <nav class="grid grid-cols-3 gap-1 text-[11px] font-extrabold text-center">
-                <button id="nav-btn-scan" onclick="switchMainView('scan')" class="py-2 rounded-xl text-white bg-indigo-600 shadow-sm flex flex-col items-center justify-center space-y-0.5 transition">
-                    <i class="fa-solid fa-barcode text-sm"></i>
-                    <span>Scan &amp; Opname</span>
-                </button>
-                <button id="nav-btn-data" onclick="switchMainView('data')" class="py-2 rounded-xl text-indigo-300 hover:text-white hover:bg-indigo-900 flex flex-col items-center justify-center space-y-0.5 transition">
-                    <i class="fa-solid fa-rectangle-list text-sm"></i>
-                    <span>Data SO</span>
-                </button>
-                <button id="nav-btn-admin" onclick="switchMainView('admin')" class="py-2 rounded-xl text-indigo-300 hover:text-white hover:bg-indigo-900 flex flex-col items-center justify-center space-y-0.5 transition">
-                    <i class="fa-solid fa-chart-pie text-sm text-amber-400"></i>
-                    <span>Admin Dashboard</span>
-                </button>
-            </nav>
+      <!-- Quick Controls & Status -->
+      <div class="flex items-center space-x-1.5">
+        <a href="https://docs.google.com/spreadsheets/d/1iwIUex4VL_P1ORfPzTUKRgFvg_9bJsoEjdaNi605C_Y/edit?gid=1413100930#gid=1413100930" target="_blank" title="Buka Spreadsheet DATABASE SO" class="bg-emerald-950/80 active:scale-95 text-emerald-300 text-xs px-2.5 py-1.5 rounded-xl border border-emerald-700/80 flex items-center gap-1.5 transition shadow">
+          <i class="fa-solid fa-file-excel text-emerald-400"></i>
+          <span class="text-[10px] font-bold hidden sm:inline">Sheet</span>
+        </a>
+
+        <button id="btnSyncQueue" onclick="app.syncPendingQueue()" class="relative bg-slate-800/90 active:scale-95 text-slate-200 text-xs px-2.5 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition shadow">
+          <i class="fa-solid fa-arrows-rotate text-brand-400 text-xs" id="syncIcon"></i>
+          <span class="text-[11px] font-bold">Queue</span>
+          <span id="syncQueueBadge" class="bg-amber-500 text-slate-950 font-black px-1.5 py-0.2 rounded-full text-[10px] hidden">0</span>
+        </button>
+
+        <div class="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-800/90 border border-slate-700/80 text-[11px] font-mono text-slate-300">
+          <span class="w-2 h-2 rounded-full bg-emerald-500" id="netStatusDot"></span>
+          <span id="netStatusText" class="text-[10px] font-bold">Online</span>
         </div>
+      </div>
     </header>
 
-    <main class="max-w-md mx-auto px-3 mt-3 space-y-3">
+    <!-- MAIN VIEWPORT CONTAINER -->
+    <main class="flex-1 overflow-y-auto p-3 sm:p-4 custom-scrollbar w-full pb-28">
 
-        <!-- Toast Notification Container -->
-        <div id="toast-container" class="fixed top-24 left-1/2 -translate-x-1/2 z-50 flex flex-col space-y-2 pointer-events-none w-11/12 max-w-sm"></div>
-
-        <div id="view-scan-so" class="space-y-3">
-            
-            <!-- MODE SWITCHER: SO FISIK VS REVISI SO -->
-            <section class="bg-white rounded-2xl p-1.5 shadow-sm border border-slate-200">
-                <div class="grid grid-cols-2 gap-1 text-xs font-black text-center">
-                    <button id="mode-btn-so" onclick="setAppOperationMode('SO')" class="py-2 rounded-xl bg-indigo-600 text-white shadow-sm flex items-center justify-center space-x-1.5 transition">
-                        <i class="fa-solid fa-boxes-stacked text-xs"></i>
-                        <span>Stock Opname Fisik</span>
-                    </button>
-                    <button id="mode-btn-revisi" onclick="setAppOperationMode('REVISI')" class="py-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-rose-50 hover:text-rose-700 flex items-center justify-center space-x-1.5 transition">
-                        <i class="fa-solid fa-pen-to-square text-xs text-rose-600"></i>
-                        <span>Revisi SO (Sheet)</span>
-                    </button>
-                </div>
-            </section>
-
-            <section id="section-session-box" class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-3.5 space-y-2.5">
-                <div class="flex items-center justify-between pb-2 border-b border-slate-100">
-                    <span class="text-xs font-bold text-slate-700 flex items-center uppercase tracking-wide">
-                        <i class="fa-solid fa-user-gear text-indigo-600 mr-1.5"></i> Sesi Petugas &amp; Rak
-                    </span>
-                    <button id="btn-toggle-lock" onclick="toggleLockSession()" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition">
-                        <i class="fa-solid fa-lock-open mr-1"></i> Edit Sesi
-                    </button>
-                </div>
-
-                <div id="session-inputs" class="space-y-2.5">
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Peran Petugas</label>
-                            <select id="select-role" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none">
-                                <option value="Checker">Checker / Hitung</option>
-                                <option value="Auditor">Auditor / Verifikator</option>
-                                <option value="Leader">Team Leader</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">
-                                Nama Petugas <span class="text-rose-500">*</span>
-                            </label>
-                            <div class="relative">
-                                <select id="select-officer-dropdown" onchange="handleOfficerSelectChange()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none">
-                                    <option value="">-- Memuat Petugas... --</option>
-                                </select>
-                                <input type="text" id="input-officer-custom" placeholder="Ketik Nama Manual..." class="hidden mt-1 w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Kode / Nama Rak <span class="text-rose-500">*</span></label>
-                        <input type="text" id="input-rack-name" placeholder="Contoh: RAK-A1-02" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-bold uppercase tracking-wider text-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none">
-                    </div>
-                </div>
-
-                <!-- LOCKED SESSION STATE DISPLAY -->
-                <div id="session-locked-info" class="hidden bg-indigo-50/80 border border-indigo-100 rounded-xl p-2.5 text-xs flex justify-between items-center text-indigo-900">
-                    <div class="flex items-center space-x-3 truncate">
-                        <div class="bg-indigo-600 text-white w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
-                            <i class="fa-solid fa-location-dot"></i>
-                        </div>
-                        <div class="truncate">
-                            <div class="font-black text-sm text-indigo-950 uppercase tracking-tight" id="disp-rack">RAK-00</div>
-                            <div class="text-[10px] text-indigo-700 font-medium truncate">
-                                <span id="disp-officer">Petugas</span> (<span id="disp-role">Checker</span>)
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-3.5 space-y-3">
-                <div class="flex items-center justify-between">
-                    <span id="scan-box-title" class="text-xs font-bold text-slate-700 flex items-center uppercase tracking-wide">
-                        <i class="fa-solid fa-barcode text-indigo-600 mr-1.5"></i> Scan / Ketik Kode Stock
-                    </span>
-                    <button onclick="toggleCameraScanner()" class="text-[11px] px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl border border-indigo-200 transition flex items-center space-x-1.5 btn-touch">
-                        <i class="fa-solid fa-camera"></i>
-                        <span id="btn-camera-text">BUKA KAMERA HP</span>
-                    </button>
-                </div>
-
-                <!-- Kamera HP Scanner Viewport -->
-                <div id="camera-scanner-container" class="hidden bg-slate-900 p-2 rounded-2xl border-2 border-indigo-500/50 shadow-inner">
-                    <div id="interactive-reader" class="scanner-viewport"></div>
-                    <p class="text-[10px] text-center text-slate-300 mt-1.5 font-medium">Arahkan kamera HP ke Kode Stock / Barcode barang</p>
-                </div>
-
-                <!-- Input Barcode Form -->
-                <div class="flex space-x-2">
-                    <div class="relative flex-1">
-                        <input type="text" id="input-barcode" inputmode="numeric" placeholder="Scan / Ketik Kode Stock / Barcode..." class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-3 py-3 text-sm font-bold tracking-wide outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white shadow-inner">
-                        <i class="fa-solid fa-barcode text-slate-400 absolute left-3 top-3.5 text-base"></i>
-                    </div>
-                    <button onclick="triggerBarcodeSearch()" class="bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold px-4 rounded-xl text-xs flex items-center justify-center space-x-1 shadow-sm btn-touch">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                        <span>CARI</span>
-                    </button>
-                </div>
-            </section>
-
-            <section id="section-product-result" class="hidden bg-white rounded-2xl shadow-md border-2 border-indigo-500/80 p-3.5 space-y-3 animate-in fade-in zoom-in duration-150">
-                <div class="bg-indigo-50/80 border border-indigo-100 rounded-xl p-3 space-y-2">
-                    <div class="flex justify-between items-start">
-                        <div class="space-y-1 pr-2">
-                            <div class="flex items-center space-x-1.5 flex-wrap gap-y-1">
-                                <span id="res-product-code" class="inline-block bg-indigo-600 text-white font-mono text-[11px] font-black px-2 py-0.5 rounded-md">
-                                    KODE-ITEM
-                                </span>
-                                <span id="res-product-orig" class="inline-block bg-slate-200 text-slate-700 font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-md">
-                                    ORIG-CODE
-                                </span>
-                                <span id="res-product-family" class="inline-block bg-amber-100 text-amber-800 font-bold text-[10px] px-2 py-0.5 rounded-md">
-                                    Family
-                                </span>
-                            </div>
-                            <h2 id="res-product-name" class="font-extrabold text-sm text-slate-900 leading-snug pt-0.5">
-                                Nama Produk
-                            </h2>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Form Qty Input -->
-                <div class="space-y-2">
-                    <div class="flex justify-between items-center">
-                        <label class="block text-[10px] font-extrabold text-slate-500 uppercase">
-                            Qty Terhitung Fisik <span class="text-rose-500">*</span>
-                        </label>
-                    </div>
-
-                    <div class="flex items-center space-x-2">
-                        <button type="button" onclick="adjustQty(-1)" class="w-12 h-12 rounded-xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 font-extrabold text-lg text-slate-700 shadow-sm flex items-center justify-center btn-touch">
-                            <i class="fa-solid fa-minus"></i>
-                        </button>
-                        
-                        <input type="number" id="input-qty" inputmode="decimal" value="1" min="0" step="any" class="flex-1 bg-slate-50 border-2 border-indigo-600 rounded-xl h-12 text-center text-2xl font-black text-indigo-900 outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white shadow-inner">
-                        
-                        <button type="button" onclick="adjustQty(1)" class="w-12 h-12 rounded-xl bg-indigo-100 hover:bg-indigo-200 active:bg-indigo-300 font-extrabold text-lg text-indigo-800 shadow-sm flex items-center justify-center btn-touch">
-                            <i class="fa-solid fa-plus"></i>
-                        </button>
-                    </div>
-
-                    <div class="grid grid-cols-5 gap-1.5 pt-1">
-                        <button type="button" onclick="adjustQty(1)" class="py-1.5 bg-slate-100 hover:bg-indigo-50 text-slate-700 font-bold text-xs rounded-lg border border-slate-200 btn-touch">+1</button>
-                        <button type="button" onclick="adjustQty(5)" class="py-1.5 bg-slate-100 hover:bg-indigo-50 text-slate-700 font-bold text-xs rounded-lg border border-slate-200 btn-touch">+5</button>
-                        <button type="button" onclick="adjustQty(10)" class="py-1.5 bg-slate-100 hover:bg-indigo-50 text-slate-700 font-bold text-xs rounded-lg border border-slate-200 btn-touch">+10</button>
-                        <button type="button" onclick="adjustQty(50)" class="py-1.5 bg-slate-100 hover:bg-indigo-50 text-slate-700 font-bold text-xs rounded-lg border border-slate-200 btn-touch">+50</button>
-                        <button type="button" onclick="adjustQty(100)" class="py-1.5 bg-slate-100 hover:bg-indigo-50 text-slate-700 font-bold text-xs rounded-lg border border-slate-200 btn-touch">+100</button>
-                    </div>
-                </div>
-
-                <!-- Action Buttons -->
-                <div class="grid grid-cols-3 gap-2 pt-1">
-                    <button type="button" onclick="resetProductSelection()" class="py-3 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs btn-touch border border-slate-200">
-                        Batal
-                    </button>
-                    <button type="button" id="btn-save-opname" onclick="saveStockOpname()" class="col-span-2 py-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-extrabold rounded-xl text-xs flex items-center justify-center space-x-1.5 shadow-md btn-touch">
-                        <i class="fa-solid fa-cloud-arrow-up text-base"></i>
-                        <span>SIMPAN STOK OPNAME</span>
-                    </button>
-                </div>
-            </section>
-
-            <section id="section-revisi-result" class="hidden bg-white rounded-2xl shadow-md border-2 border-rose-500 p-3.5 space-y-3 animate-in fade-in zoom-in duration-150">
-                <div class="bg-rose-50/80 border border-rose-200 rounded-xl p-3 space-y-2">
-                    <div class="flex justify-between items-start">
-                        <div class="space-y-1 pr-2">
-                            <div class="flex items-center space-x-1.5 flex-wrap gap-y-1">
-                                <span id="rev-product-code" class="inline-block bg-rose-600 text-white font-mono text-[11px] font-black px-2 py-0.5 rounded-md">
-                                    KODE-ITEM
-                                </span>
-                                <span id="rev-product-orig" class="inline-block bg-slate-200 text-slate-700 font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-md">
-                                    ORIG-CODE
-                                </span>
-                                <span class="inline-block bg-rose-100 text-rose-800 font-bold text-[10px] px-2 py-0.5 rounded-md">
-                                    Revisi SO
-                                </span>
-                            </div>
-                            <h2 id="rev-product-name" class="font-extrabold text-sm text-slate-900 leading-snug pt-0.5">
-                                Nama Produk
-                            </h2>
-                        </div>
-                    </div>
-
-                    <!-- DATA REFERENSI KUNING SHEET REVISI SO -->
-                    <div class="grid grid-cols-3 gap-1.5 pt-2 border-t border-rose-200/70 text-center">
-                        <div class="bg-amber-100/80 border border-amber-300/80 rounded-lg p-1.5">
-                            <div class="text-[9px] font-bold text-amber-800 uppercase">Qty SO</div>
-                            <div id="rev-data-qty-so" class="text-sm font-black text-amber-950">0</div>
-                        </div>
-                        <div class="bg-amber-100/80 border border-amber-300/80 rounded-lg p-1.5">
-                            <div class="text-[9px] font-bold text-amber-800 uppercase">Qty Onhand</div>
-                            <div id="rev-data-qty-onhand" class="text-sm font-black text-amber-950">0</div>
-                        </div>
-                        <div class="bg-amber-100/80 border border-amber-300/80 rounded-lg p-1.5">
-                            <div class="text-[9px] font-bold text-amber-800 uppercase">Selisih</div>
-                            <div id="rev-data-selisih" class="text-sm font-black text-rose-700">0</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Form Input QTY REVISI (Kolom Merah) -->
-                <div class="space-y-2">
-                    <div class="flex justify-between items-center">
-                        <label class="block text-[11px] font-black text-rose-700 uppercase flex items-center">
-                            <i class="fa-solid fa-pen-to-square mr-1"></i> QTY REVISI (KOLOM MERAH) <span class="text-rose-500 ml-1">*</span>
-                        </label>
-                    </div>
-
-                    <div class="flex items-center space-x-2">
-                        <button type="button" onclick="adjustQtyRevisi(-1)" class="w-12 h-12 rounded-xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 font-extrabold text-lg text-slate-700 shadow-sm flex items-center justify-center btn-touch">
-                            <i class="fa-solid fa-minus"></i>
-                        </button>
-                        
-                        <input type="number" id="input-qty-revisi" inputmode="decimal" value="0" min="0" step="any" class="flex-1 bg-rose-50 border-2 border-rose-600 rounded-xl h-12 text-center text-2xl font-black text-rose-900 outline-none focus:ring-2 focus:ring-rose-500 focus:bg-white shadow-inner">
-                        
-                        <button type="button" onclick="adjustQtyRevisi(1)" class="w-12 h-12 rounded-xl bg-rose-100 hover:bg-rose-200 active:bg-rose-300 font-extrabold text-lg text-rose-800 shadow-sm flex items-center justify-center btn-touch">
-                            <i class="fa-solid fa-plus"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Action Buttons -->
-                <div class="grid grid-cols-3 gap-2 pt-1">
-                    <button type="button" onclick="resetRevisiSelection()" class="py-3 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs btn-touch border border-slate-200">
-                        Batal
-                    </button>
-                    <button type="button" id="btn-save-revisi" onclick="saveRevisiSO()" class="col-span-2 py-3 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white font-extrabold rounded-xl text-xs flex items-center justify-center space-x-1.5 shadow-md btn-touch">
-                        <i class="fa-solid fa-floppy-disk text-base"></i>
-                        <span>SIMPAN QTY REVISI</span>
-                    </button>
-                </div>
-            </section>
-
-            <section id="section-revisi-list-container" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200/80 p-3.5 space-y-3">
-                <div class="flex items-center justify-between pb-2 border-b border-slate-100">
-                    <span class="text-xs font-bold text-rose-700 flex items-center uppercase tracking-wide">
-                        <i class="fa-solid fa-list-check text-rose-600 mr-1.5"></i> Daftar Item Revisi SO (<span id="count-revisi-badge">0</span>)
-                    </span>
-                    <button onclick="fetchRevisiSheetData(true)" class="text-[10px] bg-rose-50 hover:bg-rose-100 text-rose-700 px-2.5 py-1 rounded-lg font-bold flex items-center space-x-1 border border-rose-200">
-                        <i class="fa-solid fa-rotate"></i>
-                        <span>Muat Ulang List</span>
-                    </button>
-                </div>
-
-                <!-- MULTI-FILTER CONTAINER UNTUK REVISI SO -->
-                <div class="bg-rose-50/60 border border-rose-100 rounded-xl p-2.5 space-y-2">
-                    <div class="text-[10px] font-extrabold text-rose-900 uppercase tracking-wider flex items-center justify-between">
-                        <span class="flex items-center gap-1">
-                            <i class="fa-solid fa-filter text-rose-600"></i> Filter List Revisi
-                        </span>
-                        <button onclick="resetRevisiFilters()" class="text-[9px] text-rose-600 hover:text-rose-800 font-bold underline">
-                            Reset Filter
-                        </button>
-                    </div>
-
-                    <!-- Dropdowns Filter Petugas & Rak -->
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="block text-[9px] font-bold text-slate-500 uppercase mb-0.5">Petugas</label>
-                            <select id="rev-filter-officer" onchange="renderRevisiDataList()" class="w-full bg-white border border-slate-200 rounded-lg p-1.5 text-[11px] font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-rose-500">
-                                <option value="">-- Semua Petugas --</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-[9px] font-bold text-slate-500 uppercase mb-0.5">Rak / Lokasi</label>
-                            <select id="rev-filter-rack" onchange="renderRevisiDataList()" class="w-full bg-white border border-slate-200 rounded-lg p-1.5 text-[11px] font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-rose-500">
-                                <option value="">-- Semua Rak --</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Dropdown Status & Input Text Search -->
-                    <div class="grid grid-cols-3 gap-2">
-                        <div>
-                            <label class="block text-[9px] font-bold text-slate-500 uppercase mb-0.5">Status Revisi</label>
-                            <select id="rev-filter-status" onchange="renderRevisiDataList()" class="w-full bg-white border border-slate-200 rounded-lg p-1.5 text-[11px] font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-rose-500">
-                                <option value="">Semua Status</option>
-                                <option value="pending">Belum Direvisi</option>
-                                <option value="done">Sudah Direvisi</option>
-                            </select>
-                        </div>
-                        <div class="col-span-2">
-                            <label class="block text-[9px] font-bold text-slate-500 uppercase mb-0.5">Cari Item / Barcode</label>
-                            <div class="relative">
-                                <input type="text" id="input-revisi-list-search" oninput="renderRevisiDataList()" placeholder="Cari item, original, nama..." class="w-full bg-white border border-slate-200 rounded-lg pl-7 pr-2 py-1.5 text-[11px] font-semibold outline-none focus:ring-2 focus:ring-rose-500">
-                                <i class="fa-solid fa-magnifying-glass text-slate-400 absolute left-2 top-2 text-[10px]"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Cards List of Revision Items -->
-                <div id="revisi-items-card-list" class="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
-                    <div class="py-6 text-center text-slate-400 text-xs flex items-center justify-center space-x-2">
-                        <i class="fa-solid fa-spinner fa-spin text-rose-600"></i>
-                        <span>Memuat data dari Sheet Revisi SO...</span>
-                    </div>
-                </div>
-            </section>
+      <!-- ================================================================= -->
+      <!-- TAB 1: STOCK OPNAME FISIK & HASIL SO                              -->
+      <!-- ================================================================= -->
+      <div id="page-so" class="space-y-3.5">
+        
+        <!-- SUB NAVIGATION TOGGLE FOR MOBILE -->
+        <div class="grid grid-cols-2 p-1 bg-slate-900/90 border border-slate-800 rounded-2xl text-xs font-semibold shadow-inner">
+          <button id="btnSubTabInput" onclick="app.switchSoSubView('input')" class="py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 text-white shadow-md transition flex items-center justify-center gap-2 active:scale-95">
+            <i class="fa-solid fa-barcode text-sm"></i> Input Fisik SO
+          </button>
+          <button id="btnSubTabHasil" onclick="app.switchSoSubView('hasil')" class="py-2.5 rounded-xl text-slate-400 hover:text-white transition flex items-center justify-center gap-2 active:scale-95">
+            <i class="fa-solid fa-list-check text-sm"></i> Log Hasil SO
+          </button>
         </div>
 
-        <div id="view-data-so" class="hidden space-y-3">
-            <section class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-3.5 space-y-3">
-                <div class="flex items-center justify-between pb-2 border-b border-slate-100">
-                    <span class="text-xs font-bold text-slate-800 flex items-center uppercase tracking-wide">
-                        <i class="fa-solid fa-clock-rotate-left text-indigo-600 mr-1.5"></i> Histori Hasil SO (<span id="count-so-badge">0</span>)
-                    </span>
-                    <button onclick="renderHistoryList()" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg font-bold flex items-center space-x-1">
-                        <i class="fa-solid fa-rotate"></i>
-                        <span>Refresh</span>
-                    </button>
+        <!-- VIEW A: INPUT FORM & SCANNER -->
+        <div id="soSubViewInput" class="space-y-3.5">
+          
+          <!-- STEP 1: SESSION CONFIGURATION CARD -->
+          <div id="sessionCard" class="glass-card rounded-2xl p-3.5 border border-slate-800 shadow-xl space-y-3 transition-all">
+            <div class="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
+              <div class="flex items-center gap-2">
+                <span class="w-6 h-6 rounded-xl bg-brand-500/20 text-brand-400 flex items-center justify-center font-black text-xs border border-brand-500/30">1</span>
+                <div>
+                  <h2 class="text-xs font-black text-white tracking-wide">Konfigurasi Sesi Lokasi / Rak</h2>
+                  <p class="text-[10px] text-slate-400">Tentukan petugas & lokasi sebelum scan fisik.</p>
                 </div>
-
-                <!-- FILTER DAN PENCARIAN DATA SO -->
-                <div class="bg-slate-50 border border-slate-200/90 rounded-xl p-2.5 space-y-2">
-                    <div class="text-[10px] font-bold text-indigo-900 uppercase tracking-wider flex items-center justify-between">
-                        <span class="flex items-center gap-1">
-                            <i class="fa-solid fa-filter text-indigo-600"></i> Filter Histori SO
-                        </span>
-                        <button onclick="resetHistoryFilters()" class="text-[9px] text-indigo-600 hover:text-indigo-800 font-bold underline">
-                            Reset Filter
-                        </button>
-                    </div>
-
-                    <!-- Dropdowns Filter Petugas & Rak -->
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="block text-[9px] font-bold text-slate-500 uppercase mb-0.5">Petugas SO</label>
-                            <select id="so-filter-officer" onchange="renderHistoryList()" class="w-full bg-white border border-slate-200 rounded-lg p-1.5 text-[11px] font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500">
-                                <option value="">-- Semua Petugas --</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-[9px] font-bold text-slate-500 uppercase mb-0.5">Rak / Lokasi</label>
-                            <select id="so-filter-rack" onchange="renderHistoryList()" class="w-full bg-white border border-slate-200 rounded-lg p-1.5 text-[11px] font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500">
-                                <option value="">-- Semua Rak --</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Search Input for Product / Code -->
-                    <div>
-                        <div class="relative">
-                            <input type="text" id="so-filter-search" oninput="renderHistoryList()" placeholder="Cari nama barang, SKU, barcode..." class="w-full bg-white border border-slate-200 rounded-lg pl-8 pr-2.5 py-1.5 text-xs font-medium text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500">
-                            <i class="fa-solid fa-magnifying-glass text-slate-400 absolute left-2.5 top-2.5 text-xs"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="mobile-history-container" class="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
-                    <div class="py-8 text-center text-slate-400 text-xs space-y-1">
-                        <i class="fa-solid fa-clipboard-list text-2xl text-slate-300"></i>
-                        <p>Belum ada data opname yang disimpan pada sesi ini.</p>
-                    </div>
-                </div>
-                
-                <div class="pt-2 flex justify-between items-center border-t border-slate-100 gap-2">
-                    <button onclick="exportDataToExcel('SO')" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 btn-touch">
-                        <i class="fa-solid fa-file-excel text-emerald-400"></i>
-                        <span>Export Hasil SO (.xlsx)</span>
-                    </button>
-                </div>
-            </section>
-        </div>
-
-        <div id="view-admin-dashboard" class="hidden space-y-3">
-            <div class="grid grid-cols-2 gap-2">
-                <div class="bg-indigo-900 text-white p-3 rounded-2xl shadow-sm space-y-1">
-                    <div class="text-[10px] text-indigo-300 font-bold uppercase tracking-wider flex items-center justify-between">
-                        <span>Opname SKU</span>
-                        <i class="fa-solid fa-boxes-stacked text-indigo-400"></i>
-                    </div>
-                    <div class="flex items-baseline space-x-1">
-                        <span id="adm-scanned-sku" class="text-xl font-black text-white">0</span>
-                        <span id="adm-total-master" class="text-[10px] text-indigo-300 font-semibold">/ 0 SKU</span>
-                    </div>
-                    <div class="w-full bg-indigo-950 rounded-full h-1.5 overflow-hidden">
-                        <div id="adm-progress-bar" class="bg-emerald-400 h-full transition-all duration-300" style="width: 0%"></div>
-                    </div>
-                </div>
-
-                <div class="bg-slate-900 text-white p-3 rounded-2xl shadow-sm space-y-1">
-                    <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center justify-between">
-                        <span>Total Qty Fisik</span>
-                        <i class="fa-solid fa-cubes text-emerald-400"></i>
-                    </div>
-                    <div id="adm-total-qty-fisik" class="text-xl font-black text-emerald-400">0</div>
-                    <div class="text-[9px] text-slate-400">Total Item Terhitung</div>
-                </div>
+              </div>
+              <button id="btnToggleLock" onclick="app.toggleSessionLock()" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 active:bg-emerald-500 text-white transition flex items-center gap-1.5 shadow-lg shadow-emerald-600/25 active:scale-95">
+                <i class="fa-solid fa-lock"></i> <span id="lockBtnText">Kunci Sesi</span>
+              </button>
             </div>
 
-            <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-3.5 space-y-3">
-                <div class="flex items-center justify-between border-b border-slate-100 pb-2">
-                    <span class="text-xs font-bold text-slate-800 flex items-center uppercase tracking-wide">
-                        <i class="fa-solid fa-user-shield text-indigo-600 mr-1.5"></i> Ringkasan Audit Admin
-                    </span>
-                    <button onclick="renderAdminDashboard()" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded-lg font-bold flex items-center space-x-1">
-                        <i class="fa-solid fa-rotate"></i>
-                        <span>Refresh Data</span>
-                    </button>
-                </div>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <label class="block text-[10px] text-slate-400 font-medium mb-1">Tim SO</label>
+                <select id="sessionTeam" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-white text-xs focus:outline-none focus:border-brand-500 font-bold">
+                  <option value="SURTOK">SURTOK (Tim Awal)</option>
+                  <option value="AUDIT">AUDIT (Tim Cek)</option>
+                </select>
+              </div>
 
-                <div class="text-[10px]">
-                    <label class="block font-bold text-slate-500 uppercase mb-0.5">Filter Petugas</label>
-                    <select id="adm-filter-officer" onchange="renderAdminDashboard()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 font-semibold text-xs outline-none">
-                        <option value="">-- Semua Petugas --</option>
-                    </select>
-                </div>
+              <div>
+                <label class="block text-[10px] text-slate-400 font-medium mb-1">Nama Petugas</label>
+                <select id="sessionOfficer" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-white text-xs focus:outline-none focus:border-brand-500 font-medium">
+                  <option value="">-- Pilih --</option>
+                </select>
+              </div>
 
-                <div id="adm-audit-list" class="space-y-2 max-h-64 overflow-y-auto pr-1">
-                    <div class="py-6 text-center text-slate-400 text-xs">
-                        Memuat data audit...
-                    </div>
+              <div>
+                <label class="block text-[10px] text-slate-400 font-medium mb-1">Kode Rak / Baris</label>
+                <input type="text" id="sessionRack" placeholder="e.g. RAK-A01" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-amber-400 font-mono uppercase text-xs focus:outline-none focus:border-brand-500 font-black tracking-wide">
+              </div>
+
+              <div>
+                <label class="block text-[10px] text-slate-400 font-medium mb-1">Tahap SO</label>
+                <select id="sessionPhase" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-white text-xs focus:outline-none focus:border-brand-500 font-medium">
+                  <option value="Fase 1">Fase 1 (Hitung 1)</option>
+                  <option value="Fase 2">Fase 2 (Hitung 2)</option>
+                  <option value="Final">Final Audit</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 2: BARCODE & SEARCH CARD -->
+          <div class="glass-card rounded-2xl p-3.5 border border-slate-800 shadow-xl space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="w-6 h-6 rounded-xl bg-brand-500/20 text-brand-400 flex items-center justify-center font-black text-xs border border-brand-500/30">2</span>
+                <span class="text-xs font-black text-white tracking-wide">Cari / Scan Barcode SKU</span>
+              </div>
+              <button onclick="app.openScannerModal()" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-brand-600 via-indigo-600 to-purple-600 active:from-brand-500 active:to-purple-500 text-white text-xs font-black transition flex items-center gap-1.5 shadow-lg shadow-indigo-600/30 active:scale-95">
+                <i class="fa-solid fa-camera text-sm"></i> Scan HP
+              </button>
+            </div>
+
+            <!-- BARCODE INPUT FIELD WITH LIVE AUTO-SUGGESTION -->
+            <div class="relative">
+              <div class="relative">
+                <i class="fa-solid fa-barcode absolute left-3.5 top-3.5 text-brand-400 text-sm"></i>
+                <input type="text" id="barcodeInput" oninput="app.handleBarcodeInput(this.value)" autocomplete="off" placeholder="Scan Barcode / SKU / Ketik Nama..." class="w-full bg-slate-900 border-2 border-slate-700 focus:border-brand-500 text-white font-mono text-sm rounded-xl pl-10 pr-9 py-2.5 transition focus:outline-none shadow-inner">
+                <button onclick="document.getElementById('barcodeInput').value=''; app.clearFoundItem();" class="absolute right-2.5 top-2.5 w-7 h-7 rounded-lg text-slate-400 hover:text-white flex items-center justify-center active:bg-slate-800">
+                  <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+              </div>
+
+              <!-- Real-time Live Search Suggestion Dropdown -->
+              <div id="liveSearchDropdown" class="hidden absolute left-0 right-0 top-12 z-20 bg-slate-900/98 border border-slate-700 rounded-xl shadow-2xl max-h-48 overflow-y-auto custom-scrollbar divide-y divide-slate-800"></div>
+            </div>
+
+            <!-- FOUND ITEM DISPLAY CARD -->
+            <div id="foundItemCard" class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 transition-all">
+              <div class="text-center py-5 text-slate-500 space-y-2">
+                <div class="w-12 h-12 rounded-full bg-slate-800/80 mx-auto flex items-center justify-center text-slate-600">
+                  <i class="fa-solid fa-barcode text-2xl"></i>
                 </div>
-            </section>
+                <p class="text-xs font-medium text-slate-400">Arahkan kamera HP ke barcode atau ketik SKU/Nama barang.</p>
+              </div>
+            </div>
+
+            <!-- QTY ADJUSTMENT & TOUCH KEYPAD -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 space-y-3">
+              <div class="flex items-center justify-between">
+                <label class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                  <i class="fa-solid fa-calculator text-brand-400"></i> Jumlah Fisik Dihitung (Pcs)
+                </label>
+                <button onclick="app.toggleMobileDialpad()" class="text-[10px] text-brand-300 font-mono font-bold bg-brand-500/15 px-2.5 py-1 rounded-lg border border-brand-500/30 active:scale-95 flex items-center gap-1">
+                  <i class="fa-solid fa-keyboard"></i> Keypad HP
+                </button>
+              </div>
+
+              <!-- Qty Counter Main Input -->
+              <div class="flex items-center gap-2">
+                <button onclick="app.adjustQty(-1)" class="w-12 h-12 rounded-2xl bg-slate-800 active:bg-slate-700 text-white text-2xl font-bold flex items-center justify-center border border-slate-700 shrink-0 shadow active:scale-95">
+                  -
+                </button>
+                <input type="number" id="inputQty" value="1" min="1" class="flex-1 bg-slate-950 border-2 border-slate-700 focus:border-brand-500 rounded-2xl text-center font-mono text-2xl font-black text-emerald-400 py-2 focus:outline-none min-w-0 shadow-inner">
+                <button onclick="app.adjustQty(1)" class="w-12 h-12 rounded-2xl bg-slate-800 active:bg-slate-700 text-white text-2xl font-bold flex items-center justify-center border border-slate-700 shrink-0 shadow active:scale-95">
+                  +
+                </button>
+              </div>
+
+              <!-- Mobile Quick Fast Increment Buttons -->
+              <div class="grid grid-cols-5 gap-1.5">
+                <button onclick="app.setQty(1)" class="bg-slate-800 active:bg-slate-700 text-slate-200 py-2 rounded-xl text-xs font-mono font-bold border border-slate-700 active:scale-95 shadow">1</button>
+                <button onclick="app.addQty(5)" class="bg-slate-800 active:bg-slate-700 text-slate-200 py-2 rounded-xl text-xs font-mono font-bold border border-slate-700 active:scale-95 shadow">+5</button>
+                <button onclick="app.addQty(10)" class="bg-slate-800 active:bg-slate-700 text-slate-200 py-2 rounded-xl text-xs font-mono font-bold border border-slate-700 active:scale-95 shadow">+10</button>
+                <button onclick="app.addQty(24)" class="bg-slate-800 active:bg-slate-700 text-slate-200 py-2 rounded-xl text-xs font-mono font-bold border border-slate-700 active:scale-95 shadow">+24</button>
+                <button onclick="app.addQty(50)" class="bg-slate-800 active:bg-slate-700 text-slate-200 py-2 rounded-xl text-xs font-mono font-bold border border-slate-700 active:scale-95 shadow">+50</button>
+              </div>
+
+              <!-- POPUP TOUCH DIALPAD KEYPAD -->
+              <div id="mobileDialpad" class="hidden grid grid-cols-3 gap-1.5 pt-2 border-t border-slate-800/80">
+                <button onclick="app.pressDial('1')" class="py-3 bg-slate-800 active:bg-slate-700 text-white rounded-xl font-mono text-base font-bold shadow">1</button>
+                <button onclick="app.pressDial('2')" class="py-3 bg-slate-800 active:bg-slate-700 text-white rounded-xl font-mono text-base font-bold shadow">2</button>
+                <button onclick="app.pressDial('3')" class="py-3 bg-slate-800 active:bg-slate-700 text-white rounded-xl font-mono text-base font-bold shadow">3</button>
+                <button onclick="app.pressDial('4')" class="py-3 bg-slate-800 active:bg-slate-700 text-white rounded-xl font-mono text-base font-bold shadow">4</button>
+                <button onclick="app.pressDial('5')" class="py-3 bg-slate-800 active:bg-slate-700 text-white rounded-xl font-mono text-base font-bold shadow">5</button>
+                <button onclick="app.pressDial('6')" class="py-3 bg-slate-800 active:bg-slate-700 text-white rounded-xl font-mono text-base font-bold shadow">6</button>
+                <button onclick="app.pressDial('7')" class="py-3 bg-slate-800 active:bg-slate-700 text-white rounded-xl font-mono text-base font-bold shadow">7</button>
+                <button onclick="app.pressDial('8')" class="py-3 bg-slate-800 active:bg-slate-700 text-white rounded-xl font-mono text-base font-bold shadow">8</button>
+                <button onclick="app.pressDial('9')" class="py-3 bg-slate-800 active:bg-slate-700 text-white rounded-xl font-mono text-base font-bold shadow">9</button>
+                <button onclick="app.pressDial('CLR')" class="py-3 bg-rose-950/60 text-rose-300 active:bg-rose-900 rounded-xl font-mono text-xs font-bold border border-rose-800">CLR</button>
+                <button onclick="app.pressDial('0')" class="py-3 bg-slate-800 active:bg-slate-700 text-white rounded-xl font-mono text-base font-bold shadow">0</button>
+                <button onclick="app.pressDial('DEL')" class="py-3 bg-slate-800 text-amber-400 active:bg-slate-700 rounded-xl font-mono text-xs font-bold"><i class="fa-solid fa-backspace"></i></button>
+              </div>
+
+              <!-- MAIN SAVE BUTTON -->
+              <button onclick="app.saveSoEntry()" id="btnSaveSO" class="w-full mt-2 py-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 active:from-emerald-500 active:to-teal-500 text-white font-black text-sm rounded-2xl shadow-xl shadow-emerald-600/30 transition flex items-center justify-center gap-2 tracking-wider uppercase active:scale-95">
+                <i class="fa-solid fa-floppy-disk text-lg"></i> SIMPAN STOK OPNAME FISIK
+              </button>
+            </div>
+          </div>
+
+          <!-- RECENT RACK HISTORI CARD -->
+          <div class="glass-card rounded-2xl p-3.5 border border-slate-800 shadow-xl space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+              <h3 class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                <i class="fa-solid fa-clock-rotate-left text-brand-400"></i> Histori Sesi Rak Aktif
+              </h3>
+              <span class="text-[10px] bg-slate-800 text-amber-400 px-2.5 py-0.5 rounded-full font-mono border border-slate-700 font-bold" id="currentRackBadge">Rak: -</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 text-center p-2 rounded-xl bg-slate-900/80 border border-slate-800 font-mono">
+              <div>
+                <p class="text-[9px] text-slate-400 uppercase font-sans">Total SKU Terhitung</p>
+                <p class="text-base font-black text-emerald-400" id="statSessionItems">0</p>
+              </div>
+              <div>
+                <p class="text-[9px] text-slate-400 uppercase font-sans">Total QTY Pcs</p>
+                <p class="text-base font-black text-brand-400" id="statSessionQty">0</p>
+              </div>
+            </div>
+
+            <div class="space-y-1.5 max-h-52 overflow-y-auto custom-scrollbar pr-1" id="recentEntriesList">
+              <div class="text-center py-6 text-slate-500 text-xs">Belum ada entri untuk sesi ini.</div>
+            </div>
+          </div>
+
         </div>
+
+        <!-- VIEW B: LOG HASIL SO -->
+        <div id="soSubViewHasil" class="hidden space-y-3">
+          <div class="glass-card rounded-2xl p-3.5 border border-slate-800 shadow-xl space-y-3">
+            <div class="flex flex-col gap-2">
+              <div class="flex items-center justify-between">
+                <h3 class="text-xs font-bold text-white flex items-center gap-1.5">
+                  <i class="fa-solid fa-table-list text-brand-400"></i> HASIL SO (Log Terdaftar)
+                </h3>
+                <button onclick="app.exportHasilSoCsv()" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-lg text-[11px] font-medium flex items-center gap-1 active:scale-95">
+                  <i class="fa-solid fa-file-csv text-emerald-400"></i> Export CSV
+                </button>
+              </div>
+
+              <input type="text" id="searchHasilSoInput" oninput="app.renderHasilSoTable()" placeholder="Cari Rak / SKU / Petugas..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500 font-mono">
+            </div>
+
+            <div id="hasilSoCardContainer" class="space-y-2 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ================================================================= -->
+      <!-- TAB 2: HALAMAN REVISI SO                                          -->
+      <!-- ================================================================= -->
+      <div id="page-revisi" class="hidden space-y-3.5">
+        
+        <!-- SUMMARY STATS BANNER -->
+        <div class="grid grid-cols-3 gap-2 text-center text-xs">
+          <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-2.5">
+            <span class="text-[9px] text-slate-400 block uppercase font-medium">Total Selisih</span>
+            <strong class="text-amber-400 font-mono text-base font-black" id="statRevTotal">0</strong>
+          </div>
+          <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-2.5">
+            <span class="text-[9px] text-rose-400 block uppercase font-medium">Belum Revisi</span>
+            <strong class="text-rose-400 font-mono text-base font-black" id="statRevPending">0</strong>
+          </div>
+          <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-2.5">
+            <span class="text-[9px] text-emerald-400 block uppercase font-medium">Sudah Revisi</span>
+            <strong class="text-emerald-400 font-mono text-base font-black" id="statRevDone">0</strong>
+          </div>
+        </div>
+
+        <!-- MULTI-CRITERIA FILTER BAR -->
+        <div class="glass-card rounded-2xl p-3.5 border border-slate-800 shadow-xl space-y-2.5">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <h2 class="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+              <i class="fa-solid fa-filter"></i> Filter Item Selisih Audit
+            </h2>
+            <button onclick="app.fetchRevisiSheetData()" class="px-2.5 py-1 bg-slate-800 active:bg-slate-700 text-amber-400 border border-slate-700 rounded-xl text-[11px] font-semibold flex items-center gap-1 active:scale-95">
+              <i class="fa-solid fa-arrows-rotate" id="refreshRevisiIcon"></i> Refresh
+            </button>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div>
+              <label class="block text-slate-400 text-[10px] mb-0.5">Petugas</label>
+              <select id="filterRevOfficer" onchange="app.renderRevisiTable()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2 py-1.5 text-white text-[11px] focus:outline-none focus:border-amber-500">
+                <option value="">Semua Petugas</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-slate-400 text-[10px] mb-0.5">Kode Rak</label>
+              <input type="text" id="filterRevRack" oninput="app.renderRevisiTable()" placeholder="Contoh: RAK-A01" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2 py-1.5 text-white uppercase font-mono text-[11px] focus:outline-none focus:border-amber-500 font-bold">
+            </div>
+
+            <div>
+              <label class="block text-slate-400 text-[10px] mb-0.5">Status Revisi</label>
+              <select id="filterRevStatus" onchange="app.renderRevisiTable()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2 py-1.5 text-white text-[11px] focus:outline-none focus:border-amber-500">
+                <option value="BELUM" selected>Belum Direvisi</option>
+                <option value="SUDAH">Sudah Direvisi</option>
+                <option value="ALL">Semua Item</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-slate-400 text-[10px] mb-0.5">Pencarian</label>
+              <input type="text" id="filterRevSearch" oninput="app.renderRevisiTable()" placeholder="SKU / Nama / Barcode" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2 py-1.5 text-white font-mono text-[11px] focus:outline-none focus:border-amber-500">
+            </div>
+          </div>
+        </div>
+
+        <!-- REVISION CARDS FOR HP SCREEN -->
+        <div class="glass-card rounded-2xl p-3.5 border border-slate-800 shadow-xl space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-200">Daftar Item Selisih Audit</span>
+            <span id="revisiTotalBadge" class="bg-amber-500/20 text-amber-300 font-mono text-[10px] px-2.5 py-0.5 rounded-full border border-amber-500/30 font-bold">0 Item</span>
+          </div>
+
+          <div id="revisiCardContainer" class="space-y-2.5 max-h-[58vh] overflow-y-auto custom-scrollbar pr-1">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ================================================================= -->
+      <!-- TAB 3: HALAMAN ADMINISTRATOR                                      -->
+      <!-- ================================================================= -->
+      <div id="page-admin" class="hidden space-y-3.5">
+        
+        <!-- SPREADSHEET DIRECT ACCESS CARD -->
+        <div class="glass-card rounded-2xl p-3.5 border border-emerald-900/60 bg-emerald-950/20 shadow-xl space-y-2.5">
+          <div class="flex items-center justify-between border-b border-emerald-800/40 pb-2">
+            <h3 class="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
+              <i class="fa-solid fa-file-spreadsheet text-emerald-400"></i> Link Spreadsheet DATABASE SO
+            </h3>
+            <span class="text-[9px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-md border border-emerald-500/30 font-mono font-bold">LIVE SYNC</span>
+          </div>
+          <p class="text-[11px] text-slate-300 leading-relaxed">
+            Aplikasi terhubung secara real-time dengan Spreadsheet target. Klik tombol di bawah untuk membuka spreadsheet di browser atau aplikasi Google Sheets.
+          </p>
+          <div class="flex items-center gap-2 pt-1">
+            <a href="https://docs.google.com/spreadsheets/d/1iwIUex4VL_P1ORfPzTUKRgFvg_9bJsoEjdaNi605C_Y/edit?gid=1413100930#gid=1413100930" target="_blank" class="flex-1 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 active:from-emerald-500 active:to-teal-500 text-white font-bold text-xs rounded-xl transition text-center shadow-lg flex items-center justify-center gap-1.5 active:scale-95">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> Buka Google Spreadsheet
+            </a>
+            <button onclick="app.syncAllFromSpreadsheet()" class="px-3 py-2.5 bg-slate-800 active:bg-slate-700 text-emerald-400 border border-emerald-700/60 font-bold text-xs rounded-xl flex items-center gap-1.5 active:scale-95">
+              <i class="fa-solid fa-cloud-arrow-down" id="syncSheetIcon"></i> Tarik Data
+            </button>
+          </div>
+        </div>
+
+        <!-- SUPABASE DATABASE CONFIGURATION & SQL GENERATOR CARD -->
+        <div class="glass-card rounded-2xl p-3.5 border border-slate-800 shadow-xl space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <h3 class="text-xs font-bold text-white flex items-center gap-1.5">
+              <i class="fa-solid fa-database text-emerald-400"></i> Supabase PostgreSQL Setup
+            </h3>
+            <span id="supabaseStatusBadge" class="text-[9px] px-2 py-0.5 rounded-md font-mono font-bold bg-slate-800 text-slate-400 border border-slate-700">Offline</span>
+          </div>
+
+          <div class="space-y-2 text-xs">
+            <div>
+              <label class="block text-slate-400 text-[10px] mb-1">Supabase Project URL</label>
+              <input type="text" id="configSupabaseUrl" placeholder="https://xyz.supabase.co" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-slate-200 font-mono text-[11px] focus:outline-none focus:border-brand-500">
+            </div>
+            <div>
+              <label class="block text-slate-400 text-[10px] mb-1">Supabase Anon Key</label>
+              <input type="password" id="configSupabaseKey" placeholder="eyJhbGciOiJIUzI1NiI..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-slate-200 font-mono text-[11px] focus:outline-none focus:border-brand-500">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <button onclick="app.showSupabaseSqlModal()" class="py-2.5 bg-purple-950/40 border border-purple-800/60 active:bg-purple-900/60 text-purple-300 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 active:scale-95">
+              <i class="fa-solid fa-code"></i> Script SQL Supabase
+            </button>
+            <button onclick="app.saveSupabaseConfig()" class="py-2.5 bg-emerald-600 active:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-1.5 active:scale-95">
+              <i class="fa-solid fa-floppy-disk"></i> Simpan & Tes
+            </button>
+          </div>
+        </div>
+
+        <!-- GOOGLE APPS SCRIPT WEBHOOK CONFIG -->
+        <div class="glass-card rounded-2xl p-3.5 border border-slate-800 shadow-xl space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <h3 class="text-xs font-bold text-white flex items-center gap-1.5">
+              <i class="fa-solid fa-link text-brand-400"></i> Google Apps Script Webhook
+            </h3>
+            <button onclick="app.showGasBackendCodeModal()" class="text-[10px] text-brand-300 font-mono underline">Lihat Code GAS</button>
+          </div>
+
+          <div class="space-y-2 text-xs">
+            <div>
+              <label class="block text-slate-400 text-[10px] mb-1">URL Exec Webhook</label>
+              <input type="text" id="configWebhookUrl" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-slate-200 font-mono text-[11px] focus:outline-none focus:border-brand-500">
+            </div>
+          </div>
+
+          <button onclick="app.saveSystemConfig()" class="w-full py-2.5 bg-brand-600 active:bg-brand-500 text-white font-bold text-xs rounded-xl shadow flex items-center justify-center gap-1.5 active:scale-95">
+            <i class="fa-solid fa-floppy-disk"></i> Simpan URL Webhook
+          </button>
+        </div>
+
+        <!-- MASTER SKU DATABASE CARD -->
+        <div class="glass-card rounded-2xl p-3.5 border border-slate-800 shadow-xl space-y-2.5">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <h3 class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+              <i class="fa-solid fa-boxes-stacked text-purple-400"></i> Master Item Database (IndexedDB)
+            </h3>
+            <span class="text-[10px] font-mono text-emerald-400 font-bold" id="masterSkuCountBadge">0 SKU Cached</span>
+          </div>
+
+          <p class="text-[11px] text-slate-400 leading-relaxed">
+            Penyimpanan offline IndexedDB lokal mendukung hingga 70,000+ SKU pada memori HP tanpa lelet.
+          </p>
+
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <button onclick="app.seedMockMasterData()" class="py-2.5 bg-slate-800 active:bg-slate-700 border border-slate-700 text-[11px] font-bold text-slate-200 rounded-xl transition flex items-center justify-center gap-1.5 active:scale-95">
+              <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i> Seed 1k SKU
+            </button>
+            <button onclick="app.flushMasterDatabase()" class="py-2.5 bg-rose-950/40 active:bg-rose-900/60 border border-rose-800/60 text-[11px] font-bold text-rose-300 rounded-xl transition flex items-center justify-center gap-1.5 active:scale-95">
+              <i class="fa-solid fa-trash-can text-rose-400"></i> Flush Cache
+            </button>
+          </div>
+        </div>
+
+        <!-- RACK COMPLETION MONITOR MATRIX -->
+        <div class="glass-card rounded-2xl p-3.5 border border-slate-800 shadow-xl space-y-2.5">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <h3 class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+              <i class="fa-solid fa-border-all text-amber-400"></i> Status Kelengkapan SO Per Rak
+            </h3>
+            <span class="text-[10px] font-mono text-slate-400" id="rackMatrixCount">0 Rak</span>
+          </div>
+
+          <div id="rackCompletionList" class="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar pr-1">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- OFFICERS MANAGEMENT CARD -->
+        <div class="glass-card rounded-2xl p-3.5 border border-slate-800 shadow-xl space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <h3 class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+              <i class="fa-solid fa-users text-indigo-400"></i> Daftar Petugas Terdaftar
+            </h3>
+            <button onclick="app.addOfficerPrompt()" class="px-2 py-1 bg-indigo-600 text-white rounded-lg text-[10px] font-bold active:scale-95">
+              + Tambah
+            </button>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+              <h4 class="font-bold text-emerald-400 text-[11px] border-b border-slate-800 pb-1 mb-1">SURTOK (Tim Awal)</h4>
+              <ul id="listSurtokOfficers" class="space-y-1 text-[11px] text-slate-300 font-mono"></ul>
+            </div>
+            <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+              <h4 class="font-bold text-purple-400 text-[11px] border-b border-slate-800 pb-1 mb-1">AUDIT (Tim Cek)</h4>
+              <ul id="listAuditOfficers" class="space-y-1 text-[11px] text-slate-300 font-mono"></ul>
+            </div>
+          </div>
+        </div>
+
+      </div>
 
     </main>
 
-    <div id="modal-config" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden">
-        <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-150 flex flex-col max-h-[90vh]">
-            <div class="bg-indigo-700 px-4 py-3 text-white flex justify-between items-center">
-                <h3 class="font-bold text-sm flex items-center">
-                    <i class="fa-solid fa-database mr-2 text-emerald-400"></i> Database &amp; Sync Settings
-                </h3>
-                <button onclick="closeConfigModal()" class="text-indigo-200 hover:text-white p-1">
-                    <i class="fa-solid fa-xmark text-lg"></i>
-                </button>
-            </div>
+    <!-- BOTTOM NAVIGATION TABS -->
+    <nav class="fixed bottom-0 inset-x-0 z-40 bg-slate-900/95 border-t border-slate-800/80 backdrop-blur-xl px-3 py-2 pb-safe max-w-[480px] mx-auto flex items-center justify-around shadow-2xl">
+      <button id="tabBtn-so" onclick="app.switchTab('so')" class="flex flex-col items-center justify-center py-1 rounded-xl text-brand-400 font-bold text-[10px] transition active:scale-95">
+        <i class="fa-solid fa-barcode text-base mb-0.5"></i>
+        <span>SO & Hasil</span>
+      </button>
 
-            <div class="p-4 space-y-3.5 overflow-y-auto text-xs flex-1">
-                <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 space-y-2 text-emerald-950">
-                    <div class="font-black text-xs flex justify-between items-center text-emerald-900">
-                        <span class="flex items-center">
-                            <i class="fa-solid fa-database text-emerald-600 mr-1.5"></i> Supabase Database Connection
-                        </span>
-                    </div>
-                    <div>
-                        <label class="block font-bold text-[10px] text-emerald-800 mb-0.5">Supabase URL</label>
-                        <input type="text" id="cfg-supabase-url" placeholder="https://your-project.supabase.co" class="w-full bg-white border border-emerald-300 rounded-lg p-2 font-mono text-[10px] text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500">
-                    </div>
-                    <div>
-                        <label class="block font-bold text-[10px] text-emerald-800 mb-0.5">Supabase Anon Key</label>
-                        <input type="password" id="cfg-supabase-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5..." class="w-full bg-white border border-emerald-300 rounded-lg p-2 font-mono text-[10px] text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500">
-                    </div>
-                </div>
+      <button id="tabBtn-revisi" onclick="app.switchTab('revisi')" class="flex flex-col items-center justify-center py-1 rounded-xl text-slate-400 font-medium text-[10px] transition active:scale-95 relative">
+        <i class="fa-solid fa-list-check text-base mb-0.5"></i>
+        <span>Revisi SO</span>
+        <span id="revisiCountBadge" class="absolute -top-1 right-2 bg-amber-500 text-slate-950 font-black px-1.5 py-0.2 rounded-full text-[9px]">0</span>
+      </button>
 
-                <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-3 space-y-2 text-indigo-950">
-                    <div class="font-black text-xs flex justify-between items-center">
-                        <span class="flex items-center">
-                            <i class="fa-solid fa-file-csv text-indigo-600 mr-1.5"></i> Link Google Spreadsheet:
-                        </span>
-                    </div>
-                    <input type="text" id="cfg-gsheet-url" value="https://docs.google.com/spreadsheets/d/1V8xUgYgUTC8v_1PV868PvEa1wPfC9mFX2Ia5NjaUUME/edit?gid=0#gid=0" class="w-full bg-white border border-indigo-200 rounded-lg p-2 font-mono text-[10px] text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500">
-                    
-                    <div class="pt-1">
-                        <label class="block font-bold text-slate-800 text-[10px] flex items-center mb-0.5">
-                            <i class="fa-solid fa-paper-plane text-emerald-600 mr-1"></i> Webhook Auto-Sync (Sheet Hasil SO &amp; Revisi SO)
-                        </label>
-                        <input type="text" id="cfg-webhook-url" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-white border border-slate-300 rounded-lg p-2 font-mono text-[10px] outline-none focus:ring-2 focus:ring-emerald-500">
-                    </div>
-                </div>
-            </div>
+      <button id="tabBtn-admin" onclick="app.switchTab('admin')" class="flex flex-col items-center justify-center py-1 rounded-xl text-slate-400 font-medium text-[10px] transition active:scale-95">
+        <i class="fa-solid fa-sliders text-base mb-0.5"></i>
+        <span>Admin</span>
+      </button>
+    </nav>
 
-            <div class="bg-slate-50 px-4 py-3 border-t border-slate-200 flex justify-between items-center">
-                <button onclick="closeConfigModal()" class="px-3.5 py-2 bg-slate-200 text-slate-700 text-xs font-bold rounded-xl hover:bg-slate-300 btn-touch">Batal</button>
-                <button onclick="saveAllConfigs()" class="px-4 py-2 bg-indigo-600 text-white text-xs font-extrabold rounded-xl hover:bg-indigo-700 shadow-md btn-touch flex items-center space-x-1.5">
-                    <i class="fa-solid fa-cloud-arrow-down"></i>
-                    <span>Simpan &amp; Connect</span>
-                </button>
-            </div>
-        </div>
+  </div>
+
+  <!-- MODAL 1: CAMERA SCANNER OVERLAY -->
+  <div id="scannerModal" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md hidden flex flex-col max-w-[480px] mx-auto">
+    <div class="p-4 flex items-center justify-between border-b border-slate-800 pt-safe">
+      <h3 class="text-xs font-bold text-white flex items-center gap-2">
+        <i class="fa-solid fa-camera text-brand-400"></i> Kamera Scanner Barcode
+      </h3>
+      <button onclick="app.closeScannerModal()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center active:scale-95">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
     </div>
 
-    <script>
-        let SPREADSHEET_URL = localStorage.getItem('so_gsheet_url') || "https://docs.google.com/spreadsheets/d/1V8xUgYgUTC8v_1PV868PvEa1wPfC9mFX2Ia5NjaUUME/edit?gid=0#gid=0";
-        let WEBHOOK_URL = localStorage.getItem('so_webhook_url') || "https://script.google.com/macros/s/AKfycbyEYAjOWG1a15Gi4ViYLzYOqn5uOvZ0Sn4ISBdWg2kv1dbzf4dIm912xoFhekU3Vd7e0g/exec";
-        let SUPABASE_URL = localStorage.getItem('so_supabase_url') || "https://qtfyfrvrqvbgyaezorbb.supabase.co";
-        let SUPABASE_KEY = localStorage.getItem('so_supabase_key') || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF0ZnlmcnZycXZiZ3lhZXpvcmJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA4OTkyNzIsImV4cCI6MjEwNjQ3NTI3Mn0.vL8COXCm7UrhoMSj0iBV8HwvN6VZtd8X08YbxSkLcQM";
+    <div class="flex-1 p-4 flex flex-col items-center justify-center relative">
+      <div class="w-full max-w-[300px] h-[300px] relative rounded-3xl overflow-hidden border-2 border-brand-500 shadow-2xl bg-slate-900">
+        <div id="reader" class="w-full h-full"></div>
+        <div class="laser-line absolute left-0 right-0 h-1 bg-red-500 shadow-[0_0_15px_#f43f5e] z-10"></div>
+      </div>
+      <p class="text-xs text-slate-400 mt-4 text-center">Posisikan kode barcode di dalam kotak scanner.</p>
+    </div>
+  </div>
 
-        let supabaseClient = null;
-        let autoSyncTimer = null;
-        let isSavingOpname = false;
+  <!-- MODAL 2: EDIT QTY REVISI BOTTOM SHEET -->
+  <div id="revisiModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-end justify-center max-w-[480px] mx-auto">
+    <div class="bg-slate-900 border-t border-slate-800 rounded-t-3xl w-full p-4 space-y-3.5 shadow-2xl sheet-slide-up pb-safe">
+      <div class="w-12 h-1.5 bg-slate-700 rounded-full mx-auto"></div>
+      
+      <div class="flex items-start justify-between">
+        <div>
+          <span class="text-[9px] bg-sky-500/20 text-sky-300 font-mono font-bold px-2 py-0.5 rounded border border-sky-500/30">UPDATE QTY REVISI</span>
+          <h3 class="text-xs font-black text-white mt-1" id="revModalTitle">-</h3>
+          <p class="text-[10px] font-mono text-slate-400" id="revModalSubtitle">-</p>
+        </div>
+        <button onclick="app.closeRevisiModal()" class="text-slate-400 hover:text-white">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
 
-        let appOperationMode = "SO"; // "SO" or "REVISI"
+      <div class="space-y-2">
+        <label class="block text-[10px] text-slate-400 font-bold uppercase">Masukkan Angka Hasil Revisi Baru (Pcs)</label>
+        <div class="flex items-center gap-2">
+          <button onclick="app.adjustRevModalQty(-1)" class="w-12 h-12 rounded-2xl bg-slate-800 active:bg-slate-700 text-white text-2xl font-bold flex items-center justify-center border border-slate-700">-</button>
+          <input type="number" id="revModalQtyInput" class="flex-1 bg-slate-950 border-2 border-slate-700 focus:border-amber-500 rounded-2xl text-center font-mono text-3xl font-black text-amber-400 py-2 focus:outline-none min-w-0">
+          <button onclick="app.adjustRevModalQty(1)" class="w-12 h-12 rounded-2xl bg-slate-800 active:bg-slate-700 text-white text-2xl font-bold flex items-center justify-center border border-slate-700">+</button>
+        </div>
+      </div>
 
-        let MASTER_PRODUCTS = []; 
-        let REVISI_PRODUCTS = []; 
-        let OFFICER_LIST = [];    
+      <button onclick="app.confirmRevisiQtyUpdate()" class="w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-600 active:from-amber-600 active:to-orange-700 text-slate-950 font-black text-xs rounded-2xl shadow-xl transition uppercase tracking-wider active:scale-95">
+        <i class="fa-solid fa-floppy-disk"></i> SIMPAN QTY REVISI SPREADSHEET
+      </button>
+    </div>
+  </div>
 
-        let isSessionLocked = false;
-        let currentProduct = null;
-        let currentRevisiItem = null;
+  <!-- MODAL 3: GAS CODE VIEWER -->
+  <div id="gasModal" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md hidden flex items-center justify-center p-4 max-w-[480px] mx-auto">
+    <div class="glass-card border border-slate-800 rounded-2xl w-full p-4 space-y-3 relative shadow-2xl max-h-[85vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <h3 class="text-xs font-bold text-white flex items-center gap-1.5">
+          <i class="fa-solid fa-code text-brand-400"></i> Google Apps Script Code
+        </h3>
+        <button onclick="document.getElementById('gasModal').classList.add('hidden')" class="text-slate-400 hover:text-white">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
 
-        let html5QrCode = null;
-        let isScannerActive = false;
+      <p class="text-[10px] text-slate-400">Copy kode ini ke menu Ekstensi > Apps Script pada Google Spreadsheet Anda.</p>
 
-        let localHistorySO = JSON.parse(localStorage.getItem('so_local_history') || "[]");
+      <div class="flex-1 overflow-y-auto custom-scrollbar bg-slate-950 p-3 rounded-xl border border-slate-800 font-mono text-[10px] text-emerald-400">
+        <pre id="gasCodeContainer" class="whitespace-pre-wrap leading-relaxed"></pre>
+      </div>
 
-        window.addEventListener('DOMContentLoaded', () => {
-            initSupabaseClient();
-            setupBarcodeFieldListeners();
-            loadConfigFields();
-            updateIndicators();
-            fetchAllData();
-            renderHistoryList();
-            startAutoSyncWorker();
+      <div class="flex justify-end gap-2 pt-1">
+        <button onclick="app.copyGasCode()" class="px-3 py-1.5 bg-brand-600 active:bg-brand-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 active:scale-95">
+          <i class="fa-solid fa-copy"></i> Salin Kode
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 4: SUPABASE SQL SCRIPT VIEWER -->
+  <div id="supabaseSqlModal" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md hidden flex items-center justify-center p-4 max-w-[480px] mx-auto">
+    <div class="glass-card border border-slate-800 rounded-2xl w-full p-4 space-y-3 relative shadow-2xl max-h-[85vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <h3 class="text-xs font-bold text-white flex items-center gap-1.5">
+          <i class="fa-solid fa-database text-purple-400"></i> Supabase SQL Tables DDL Script
+        </h3>
+        <button onclick="document.getElementById('supabaseSqlModal').classList.add('hidden')" class="text-slate-400 hover:text-white">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <p class="text-[10px] text-slate-400">
+        Salin kode SQL di bawah ini dan tempelkan ke **SQL Editor** pada Dashboard Supabase Anda.
+      </p>
+
+      <div class="flex-1 overflow-y-auto custom-scrollbar bg-slate-950 p-3 rounded-xl border border-slate-800 font-mono text-[10px] text-purple-300">
+        <pre id="supabaseSqlCodeContainer" class="whitespace-pre-wrap leading-relaxed"></pre>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-1">
+        <button onclick="app.copySupabaseSqlCode()" class="px-3 py-1.5 bg-purple-600 active:bg-purple-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 active:scale-95">
+          <i class="fa-solid fa-copy"></i> Salin Script SQL
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toastContainer" class="fixed top-14 inset-x-4 z-50 space-y-2 pointer-events-none flex flex-col items-center max-w-[440px] mx-auto"></div>
+
+  <!-- ================================================================= -->
+  <!-- JAVASCRIPT APPLICATION CORE LOGIC                                 -->
+  <!-- ================================================================= -->
+  <script>
+    const DEFAULT_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbxem_4NpNyaqDpcPehmVI02wZisi9Rb7f-ZBA1Qvy2OIp_rMmKpdGk3zuIh8fT4i_wIyA/exec";
+    const DEFAULT_SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1iwIUex4VL_P1ORfPzTUKRgFvg_9bJsoEjdaNi605C_Y/edit?gid=1413100930#gid=1413100930";
+    const DEFAULT_SUPABASE_URL = "https://qtfyfrvrqvbgyaezorbb.supabase.co";
+    const DEFAULT_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF0ZnlmcnZycXZiZ3lhZXpvcmJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA4OTkyNzIsImV4cCI6MjEwNjQ3NTI3Mn0.vL8COXCm7UrhoMSj0iBV8HwvN6VZtd8X08YbxSkLcQM";
+
+    const haptics = {
+      vibrate(ms = 20) {
+        if ('vibrate' in navigator) {
+          try { navigator.vibrate(ms); } catch(e){}
+        }
+      }
+    };
+
+    const state = {
+      currentTab: 'so',
+      currentSoSubView: 'input',
+      sessionLocked: false,
+      session: {
+        team: 'SURTOK',
+        officer: '',
+        rack: '',
+        phase: 'Fase 1'
+      },
+      webhookUrl: localStorage.getItem('so_webhookUrl') || DEFAULT_WEBHOOK_URL,
+      supabaseUrl: localStorage.getItem('so_supabaseUrl') || DEFAULT_SUPABASE_URL,
+      supabaseKey: localStorage.getItem('so_supabaseKey') || DEFAULT_SUPABASE_KEY,
+      supabaseClient: null,
+
+      masterItemsMap: new Map(),
+      officers: {
+        SURTOK: ['Budi Surtok', 'Andi Surtok', 'Dedi Surtok', 'Eko Surtok'],
+        AUDIT: ['Hendra Audit', 'Siti Audit', 'Rina Audit', 'Maya Audit']
+      },
+      soLogs: JSON.parse(localStorage.getItem('so_logs') || '[]'),
+      revisiItems: [],
+      pendingQueue: JSON.parse(localStorage.getItem('so_pendingQueue') || '[]'),
+
+      selectedItem: null,
+      activeRevisiEdit: null,
+      scanner: null
+    };
+
+    const audioSynth = {
+      ctx: null,
+      init() {
+        if (!this.ctx) {
+          this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+      },
+      playBeep() {
+        try {
+          this.init();
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(1400, this.ctx.currentTime);
+          gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.1);
+        } catch(e){}
+      },
+      playError() {
+        try {
+          this.init();
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(280, this.ctx.currentTime);
+          gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.25);
+        } catch(e){}
+      }
+    };
+
+    const dbEngine = {
+      dbName: 'StockOpnameMobileProDB',
+      dbVersion: 1,
+      db: null,
+
+      async init() {
+        return new Promise((resolve, reject) => {
+          const request = indexedDB.open(this.dbName, this.dbVersion);
+          request.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains('masterItems')) {
+              const store = db.createObjectStore('masterItems', { keyPath: 'sku' });
+              store.createIndex('barcode', 'barcode', { unique: false });
+              store.createIndex('name', 'name', { unique: false });
+            }
+          };
+          request.onsuccess = (e) => {
+            this.db = e.target.result;
+            resolve(this.db);
+          };
+          request.onerror = (e) => reject(e);
+        });
+      },
+
+      async saveItemsBatch(items) {
+        if (!this.db) await this.init();
+        return new Promise((resolve, reject) => {
+          const tx = this.db.transaction('masterItems', 'readwrite');
+          const store = tx.objectStore('masterItems');
+          items.forEach(item => store.put(item));
+          tx.oncomplete = () => resolve(true);
+          tx.onerror = (e) => reject(e);
+        });
+      },
+
+      async getAllItems() {
+        if (!this.db) await this.init();
+        return new Promise((resolve, reject) => {
+          const tx = this.db.transaction('masterItems', 'readonly');
+          const store = tx.objectStore('masterItems');
+          const request = store.getAll();
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = (e) => reject(e);
+        });
+      },
+
+      async clearMasterStore() {
+        if (!this.db) await this.init();
+        return new Promise((resolve) => {
+          const tx = this.db.transaction('masterItems', 'readwrite');
+          const store = tx.objectStore('masterItems');
+          store.clear();
+          tx.oncomplete = () => resolve(true);
+        });
+      }
+    };
+
+    const app = {
+      async init() {
+        const savedOfficers = localStorage.getItem('so_officers');
+        if (savedOfficers) state.officers = JSON.parse(savedOfficers);
+
+        await dbEngine.init();
+        const cachedItems = await dbEngine.getAllItems();
+        if (cachedItems && cachedItems.length > 0) {
+          cachedItems.forEach(item => {
+            state.masterItemsMap.set(item.sku, item);
+            if (item.barcode) state.masterItemsMap.set(item.barcode, item);
+          });
+        } else {
+          this.seedMockMasterData(false);
+        }
+
+        document.getElementById('configWebhookUrl').value = state.webhookUrl;
+        document.getElementById('configSupabaseUrl').value = state.supabaseUrl;
+        document.getElementById('configSupabaseKey').value = state.supabaseKey;
+
+        this.initSupabaseClient();
+        this.populateOfficerDropdowns();
+        this.updateSyncQueueBadge();
+        this.renderHasilSoTable();
+        this.renderRecentEntries();
+        this.renderOfficerAdminList();
+        this.renderRackCompletionMatrix();
+        this.updateMasterCountDisplay();
+
+        window.addEventListener('online', () => this.updateNetworkStatus(true));
+        window.addEventListener('offline', () => this.updateNetworkStatus(false));
+        this.updateNetworkStatus(navigator.onLine);
+
+        this.syncAllFromSpreadsheet(false);
+      },
+
+      initSupabaseClient() {
+        if (state.supabaseUrl && state.supabaseKey && window.supabase) {
+          try {
+            state.supabaseClient = window.supabase.createClient(state.supabaseUrl, state.supabaseKey);
+            const badge = document.getElementById('supabaseStatusBadge');
+            if (badge) {
+              badge.textContent = "Terhubung";
+              badge.className = "text-[9px] px-2 py-0.5 rounded-md font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+            }
+          } catch(e) {
+            console.error('Supabase Init Failed:', e);
+          }
+        }
+      },
+
+      saveSupabaseConfig() {
+        haptics.vibrate(30);
+        const url = document.getElementById('configSupabaseUrl').value.trim();
+        const key = document.getElementById('configSupabaseKey').value.trim();
+        
+        state.supabaseUrl = url;
+        state.supabaseKey = key;
+        localStorage.setItem('so_supabaseUrl', url);
+        localStorage.setItem('so_supabaseKey', key);
+
+        this.initSupabaseClient();
+        this.showToast('Konfigurasi Supabase Disimpan!', 'emerald');
+      },
+
+      async syncAllFromSpreadsheet(showToastNotify = true) {
+        const syncIcon = document.getElementById('syncSheetIcon');
+        if (syncIcon) syncIcon.classList.add('fa-spin');
+
+        try {
+          const res = await fetch(`${state.webhookUrl}?action=GET_INITIAL_DATA`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.officers) {
+              state.officers = data.officers;
+              localStorage.setItem('so_officers', JSON.stringify(state.officers));
+              this.populateOfficerDropdowns();
+              this.renderOfficerAdminList();
+            }
+            if (data.revisiItems) {
+              state.revisiItems = data.revisiItems;
+              this.renderRevisiTable();
+            }
+          }
+        } catch(e) {
+          this.fetchRevisiSheetData();
+        } finally {
+          if (syncIcon) syncIcon.classList.remove('fa-spin');
+          if (showToastNotify) this.showToast('Data ditarik dari Spreadsheet!', 'emerald');
+        }
+      },
+
+      showSupabaseSqlModal() {
+        haptics.vibrate(20);
+        const sql = `-- =================================================================
+-- SCRIPT DDL SUPABASE POSTGRESQL - STOCK OPNAME MOBILE PRO (70K SKU)
+-- =================================================================
+
+CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+
+-- 1. TABEL PRODUCTS / MASTER 70K SKU
+CREATE TABLE IF NOT EXISTS public.products (
+    sku VARCHAR(100) PRIMARY KEY,
+    barcode VARCHAR(100),
+    name TEXT NOT NULL,
+    family VARCHAR(100) DEFAULT 'GENERAL',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_products_barcode ON public.products(barcode);
+CREATE INDEX IF NOT EXISTS idx_products_family ON public.products(family);
+CREATE INDEX IF NOT EXISTS idx_products_name_trgm ON public.products USING gin(name gin_trgm_ops);
+
+-- 2. TABEL STOCK OPNAME LOGS
+CREATE TABLE IF NOT EXISTS public.stock_opname_logs (
+    id VARCHAR(100) PRIMARY KEY,
+    timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    phase VARCHAR(50) NOT NULL DEFAULT 'Fase 1',
+    team VARCHAR(50) NOT NULL,
+    officer VARCHAR(100) NOT NULL,
+    rack VARCHAR(100) NOT NULL,
+    sku VARCHAR(100) REFERENCES public.products(sku) ON DELETE SET NULL,
+    barcode VARCHAR(100),
+    name TEXT NOT NULL,
+    family VARCHAR(100) DEFAULT 'GENERAL',
+    qty INT NOT NULL DEFAULT 1,
+    synced_to_sheet BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_so_logs_rack ON public.stock_opname_logs(rack);
+CREATE INDEX IF NOT EXISTS idx_so_logs_officer ON public.stock_opname_logs(officer);
+CREATE INDEX IF NOT EXISTS idx_so_logs_team ON public.stock_opname_logs(team);
+CREATE INDEX IF NOT EXISTS idx_so_logs_sku ON public.stock_opname_logs(sku);
+
+-- 3. TABEL OFFICERS
+CREATE TABLE IF NOT EXISTS public.officers (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    team VARCHAR(50) NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT unique_officer_team UNIQUE (name, team)
+);
+
+INSERT INTO public.officers (name, team) VALUES
+('Budi Surtok', 'SURTOK'),
+('Andi Surtok', 'SURTOK'),
+('Dedi Surtok', 'SURTOK'),
+('Eko Surtok', 'SURTOK'),
+('Hendra Audit', 'AUDIT'),
+('Siti Audit', 'AUDIT'),
+('Rina Audit', 'AUDIT'),
+('Maya Audit', 'AUDIT')
+ON CONFLICT (name, team) DO NOTHING;
+
+-- 4. TABEL REVISI LOGS
+CREATE TABLE IF NOT EXISTS public.revisi_logs (
+    id VARCHAR(100) PRIMARY KEY,
+    rack VARCHAR(100) NOT NULL,
+    officer VARCHAR(100) NOT NULL,
+    sku VARCHAR(100) NOT NULL,
+    barcode VARCHAR(100),
+    name TEXT NOT NULL,
+    audit INT DEFAULT 0,
+    surtok INT DEFAULT 0,
+    selisih INT DEFAULT 0,
+    qty_revisi INT,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_revisi_rack ON public.revisi_logs(rack);
+CREATE INDEX IF NOT EXISTS idx_revisi_officer ON public.revisi_logs(officer);
+
+-- RLS POLICIES
+ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.stock_opname_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.officers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.revisi_logs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public All Products" ON public.products FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Public All SO Logs" ON public.stock_opname_logs FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Public All Officers" ON public.officers FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Public All Revisi Logs" ON public.revisi_logs FOR ALL USING (true) WITH CHECK (true);
+`;
+        document.getElementById('supabaseSqlCodeContainer').textContent = sql;
+        document.getElementById('supabaseSqlModal').classList.remove('hidden');
+      },
+
+      copySupabaseSqlCode() {
+        haptics.vibrate(20);
+        const text = document.getElementById('supabaseSqlCodeContainer').textContent;
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        this.showToast('Script SQL Supabase Disalin!', 'emerald');
+      },
+
+      switchTab(tabKey) {
+        haptics.vibrate(20);
+        state.currentTab = tabKey;
+        ['so', 'revisi', 'admin'].forEach(key => {
+          const pageEl = document.getElementById(`page-${key}`);
+          const btnEl = document.getElementById(`tabBtn-${key}`);
+          if (key === tabKey) {
+            pageEl.classList.remove('hidden');
+            btnEl.className = "flex flex-col items-center justify-center py-1 rounded-xl text-brand-400 font-bold text-[10px] transition active:scale-95";
+          } else {
+            pageEl.classList.add('hidden');
+            btnEl.className = "flex flex-col items-center justify-center py-1 rounded-xl text-slate-400 font-medium text-[10px] transition active:scale-95 relative";
+          }
+        });
+      },
+
+      switchSoSubView(subKey) {
+        haptics.vibrate(15);
+        state.currentSoSubView = subKey;
+        const inputView = document.getElementById('soSubViewInput');
+        const hasilView = document.getElementById('soSubViewHasil');
+        const btnInput = document.getElementById('btnSubTabInput');
+        const btnHasil = document.getElementById('btnSubTabHasil');
+
+        if (subKey === 'input') {
+          inputView.classList.remove('hidden');
+          hasilView.classList.add('hidden');
+          btnInput.className = "py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 text-white shadow-md transition flex items-center justify-center gap-2 active:scale-95";
+          btnHasil.className = "py-2.5 rounded-xl text-slate-400 hover:text-white transition flex items-center justify-center gap-2 active:scale-95";
+        } else {
+          inputView.classList.add('hidden');
+          hasilView.classList.remove('hidden');
+          btnHasil.className = "py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 text-white shadow-md transition flex items-center justify-center gap-2 active:scale-95";
+          btnInput.className = "py-2.5 rounded-xl text-slate-400 hover:text-white transition flex items-center justify-center gap-2 active:scale-95";
+          this.renderHasilSoTable();
+        }
+      },
+
+      populateOfficerDropdowns() {
+        const teamSelect = document.getElementById('sessionTeam');
+        const officerSelect = document.getElementById('sessionOfficer');
+        const filterRevOfficer = document.getElementById('filterRevOfficer');
+
+        const currentTeam = teamSelect.value;
+        const list = state.officers[currentTeam] || [];
+
+        officerSelect.innerHTML = '<option value="">-- Pilih --</option>';
+        list.forEach(off => {
+          officerSelect.innerHTML += `<option value="${off}">${off}</option>`;
         });
 
-        function initSupabaseClient() {
-            if (SUPABASE_URL && SUPABASE_KEY && window.supabase) {
-                try {
-                    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-                        auth: { persistSession: false }
-                    });
-                } catch (e) {
-                    supabaseClient = null;
-                }
-            } else {
-                supabaseClient = null;
+        filterRevOfficer.innerHTML = '<option value="">Semua Petugas</option>';
+        const allOfficers = [...state.officers.SURTOK, ...state.officers.AUDIT];
+        allOfficers.forEach(off => {
+          filterRevOfficer.innerHTML += `<option value="${off}">${off}</option>`;
+        });
+
+        teamSelect.onchange = () => this.populateOfficerDropdowns();
+      },
+
+      toggleSessionLock() {
+        haptics.vibrate(30);
+        const officerSelect = document.getElementById('sessionOfficer');
+        const rackInput = document.getElementById('sessionRack');
+        const teamSelect = document.getElementById('sessionTeam');
+        const phaseSelect = document.getElementById('sessionPhase');
+        const sessionCard = document.getElementById('sessionCard');
+
+        if (!state.sessionLocked) {
+          if (!officerSelect.value || !rackInput.value.trim()) {
+            this.showToast('Pilih Nama Petugas & Kode Rak!', 'amber');
+            audioSynth.playError();
+            return;
+          }
+
+          state.session.team = teamSelect.value;
+          state.session.officer = officerSelect.value;
+          state.session.rack = rackInput.value.trim().toUpperCase();
+          state.session.phase = phaseSelect.value;
+          state.sessionLocked = true;
+
+          officerSelect.disabled = true;
+          rackInput.disabled = true;
+          teamSelect.disabled = true;
+          phaseSelect.disabled = true;
+
+          sessionCard.className = "glass-card glass-card-active rounded-2xl p-3.5 shadow-xl space-y-3 transition-all";
+
+          document.getElementById('lockBtnText').textContent = "Buka Sesi";
+          document.getElementById('btnToggleLock').className = "px-3.5 py-1.5 rounded-xl text-xs font-bold bg-rose-600 active:bg-rose-500 text-white transition flex items-center gap-1.5 shadow-lg shadow-rose-600/20 active:scale-95";
+          document.getElementById('headerSessionBadge').innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span> ${state.session.team} | ${state.session.officer} | <span class="font-mono font-bold text-emerald-400">${state.session.rack}</span>`;
+          document.getElementById('currentRackBadge').textContent = `Rak: ${state.session.rack}`;
+
+          this.showToast('Sesi Rak HP Dikunci & Aktif!', 'emerald');
+          this.renderRecentEntries();
+          document.getElementById('barcodeInput').focus();
+        } else {
+          state.sessionLocked = false;
+          officerSelect.disabled = false;
+          rackInput.disabled = false;
+          teamSelect.disabled = false;
+          phaseSelect.disabled = false;
+
+          sessionCard.className = "glass-card rounded-2xl p-3.5 border border-slate-800 shadow-xl space-y-3 transition-all";
+
+          document.getElementById('lockBtnText').textContent = "Kunci Sesi";
+          document.getElementById('btnToggleLock').className = "px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 active:bg-emerald-500 text-white transition flex items-center gap-1.5 shadow-lg shadow-emerald-600/20 active:scale-95";
+          document.getElementById('headerSessionBadge').innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Sesi Belum Dikunci`;
+
+          this.showToast('Sesi HP Dibuka.', 'indigo');
+        }
+      },
+
+      toggleMobileDialpad() {
+        haptics.vibrate(15);
+        document.getElementById('mobileDialpad').classList.toggle('hidden');
+      },
+
+      pressDial(key) {
+        haptics.vibrate(20);
+        const input = document.getElementById('inputQty');
+        if (key === 'CLR') {
+          input.value = '1';
+        } else if (key === 'DEL') {
+          let str = input.value.toString();
+          str = str.slice(0, -1);
+          input.value = str === '' ? '1' : str;
+        } else {
+          if (input.value === '1') {
+            input.value = key;
+          } else {
+            input.value = input.value.toString() + key;
+          }
+        }
+      },
+
+      handleBarcodeInput(query) {
+        const dropdown = document.getElementById('liveSearchDropdown');
+        const cleanQuery = query.trim();
+        
+        if (!cleanQuery) {
+          dropdown.classList.add('hidden');
+          this.clearFoundItem();
+          return;
+        }
+
+        let matched = state.masterItemsMap.get(cleanQuery) || state.masterItemsMap.get(cleanQuery.toUpperCase());
+
+        const matches = [];
+        const qLower = cleanQuery.toLowerCase();
+        
+        for (let item of state.masterItemsMap.values()) {
+          if (item.sku.toLowerCase().includes(qLower) || 
+              (item.barcode && item.barcode.toLowerCase().includes(qLower)) ||
+              item.name.toLowerCase().includes(qLower)) {
+            matches.push(item);
+            if (matches.length >= 6) break;
+          }
+        }
+
+        if (matches.length > 0) {
+          dropdown.classList.remove('hidden');
+          dropdown.innerHTML = matches.map(m => `
+            <div onclick="app.selectItemFromSuggestion('${m.sku}')" class="p-2.5 hover:bg-slate-800 active:bg-slate-700 cursor-pointer transition">
+              <div class="text-xs font-bold text-white">${m.name}</div>
+              <div class="flex items-center justify-between text-[10px] font-mono text-slate-400 mt-0.5">
+                <span>SKU: <strong class="text-emerald-400">${m.sku}</strong></span>
+                <span>${m.barcode || '-'}</span>
+              </div>
+            </div>
+          `).join('');
+        } else {
+          dropdown.classList.add('hidden');
+        }
+
+        if (matched) {
+          state.selectedItem = matched;
+          this.renderFoundItemCard(matched);
+          audioSynth.playBeep();
+          haptics.vibrate(40);
+        } else {
+          this.renderNotFoundItemCard(cleanQuery);
+        }
+      },
+
+      selectItemFromSuggestion(sku) {
+        const item = state.masterItemsMap.get(sku);
+        if (item) {
+          state.selectedItem = item;
+          document.getElementById('barcodeInput').value = item.sku;
+          document.getElementById('liveSearchDropdown').classList.add('hidden');
+          this.renderFoundItemCard(item);
+          audioSynth.playBeep();
+          haptics.vibrate(40);
+        }
+      },
+
+      renderFoundItemCard(item) {
+        const card = document.getElementById('foundItemCard');
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-2">
+            <div class="space-y-1">
+              <span class="inline-block text-[9px] bg-brand-500/20 text-brand-300 font-mono font-bold px-2 py-0.5 rounded-md border border-brand-500/30">${item.family || 'GENERAL'}</span>
+              <h4 class="text-xs font-black text-white leading-snug">${item.name}</h4>
+              <div class="flex flex-wrap items-center gap-2 text-[11px] font-mono text-slate-400 pt-0.5">
+                <span>SKU: <strong class="text-emerald-400 font-bold">${item.sku}</strong></span>
+                <span>Bar: <strong class="text-slate-200">${item.barcode || '-'}</strong></span>
+              </div>
+            </div>
+            <span class="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 shrink-0">
+              <i class="fa-solid fa-check text-sm"></i>
+            </span>
+          </div>
+        `;
+      },
+
+      renderNotFoundItemCard(query) {
+        state.selectedItem = {
+          sku: query.toUpperCase(),
+          barcode: query,
+          name: `[NEW ITEM HP] ${query}`,
+          family: 'UNMAPPED'
+        };
+        const card = document.getElementById('foundItemCard');
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-2 border border-amber-500/30 bg-amber-950/20 rounded-xl p-2.5">
+            <div class="space-y-0.5">
+              <span class="inline-block text-[9px] bg-amber-500/20 text-amber-300 font-mono px-1.5 py-0.2 rounded border border-amber-500/30 font-bold">ITEM BARU DI HP</span>
+              <h4 class="text-xs font-bold text-amber-200">Kode: ${query}</h4>
+              <p class="text-[10px] text-slate-400">Belum terdaftar di database master. Tetap bisa disimpan.</p>
+            </div>
+            <i class="fa-solid fa-triangle-exclamation text-amber-400 text-base shrink-0"></i>
+          </div>
+        `;
+      },
+
+      clearFoundItem() {
+        state.selectedItem = null;
+        document.getElementById('foundItemCard').innerHTML = `
+          <div class="text-center py-5 text-slate-500 space-y-2">
+            <div class="w-12 h-12 rounded-full bg-slate-800/80 mx-auto flex items-center justify-center text-slate-600">
+              <i class="fa-solid fa-barcode text-2xl"></i>
+            </div>
+            <p class="text-xs font-medium text-slate-400">Arahkan kamera HP ke barcode atau ketik SKU/Nama barang.</p>
+          </div>
+        `;
+      },
+
+      adjustQty(delta) {
+        haptics.vibrate(15);
+        const input = document.getElementById('inputQty');
+        let current = parseInt(input.value) || 1;
+        current = Math.max(1, current + delta);
+        input.value = current;
+      },
+
+      setQty(val) {
+        haptics.vibrate(15);
+        document.getElementById('inputQty').value = val;
+      },
+
+      addQty(val) {
+        haptics.vibrate(15);
+        const input = document.getElementById('inputQty');
+        let current = parseInt(input.value) || 0;
+        input.value = current + val;
+      },
+
+      async saveSoEntry() {
+        haptics.vibrate(50);
+        if (!state.sessionLocked) {
+          this.showToast('Gagal: Kunci sesi HP terlebih dahulu!', 'rose');
+          audioSynth.playError();
+          return;
+        }
+
+        if (!state.selectedItem) {
+          this.showToast('Gagal: Belum ada barang dipilih!', 'amber');
+          audioSynth.playError();
+          return;
+        }
+
+        const qtyInput = document.getElementById('inputQty');
+        const qty = parseInt(qtyInput.value) || 1;
+
+        const logEntry = {
+          id: 'SO-' + Date.now(),
+          timestamp: new Date().toISOString(),
+          phase: state.session.phase,
+          team: state.session.team,
+          officer: state.session.officer,
+          rack: state.session.rack,
+          sku: state.selectedItem.sku,
+          barcode: state.selectedItem.barcode || '-',
+          name: state.selectedItem.name,
+          family: state.selectedItem.family || 'GENERAL',
+          qty: qty,
+          synced: false
+        };
+
+        state.soLogs.unshift(logEntry);
+        localStorage.setItem('so_logs', JSON.stringify(state.soLogs));
+
+        // Dual Sync 1: Webhook Google Apps Script
+        this.postToWebhook({
+          action: 'SAVE_SO_FISIK',
+          data: logEntry
+        }).then(success => {
+          if (success) {
+            logEntry.synced = true;
+            localStorage.setItem('so_logs', JSON.stringify(state.soLogs));
+            this.renderHasilSoTable();
+          } else {
+            state.pendingQueue.push({ action: 'SAVE_SO_FISIK', data: logEntry });
+            localStorage.setItem('so_pendingQueue', JSON.stringify(state.pendingQueue));
+            this.updateSyncQueueBadge();
+          }
+        });
+
+        // Dual Sync 2: Supabase PostgreSQL
+        if (state.supabaseClient) {
+          try {
+            await state.supabaseClient.from('stock_opname_logs').insert([{
+              id: logEntry.id,
+              timestamp: logEntry.timestamp,
+              phase: logEntry.phase,
+              team: logEntry.team,
+              officer: logEntry.officer,
+              rack: logEntry.rack,
+              sku: logEntry.sku,
+              barcode: logEntry.barcode,
+              name: logEntry.name,
+              family: logEntry.family,
+              qty: logEntry.qty,
+              synced_to_sheet: true
+            }]);
+          } catch(err) {
+            console.error('Supabase direct insert error:', err);
+          }
+        }
+
+        this.showToast(`Tersimpan: ${state.selectedItem.sku} (${qty} pcs)`, 'emerald');
+        audioSynth.playBeep();
+
+        document.getElementById('barcodeInput').value = '';
+        this.clearFoundItem();
+        qtyInput.value = 1;
+
+        this.renderRecentEntries();
+        this.renderHasilSoTable();
+        this.renderRackCompletionMatrix();
+        document.getElementById('barcodeInput').focus();
+      },
+
+      renderRecentEntries() {
+        const listContainer = document.getElementById('recentEntriesList');
+        const rackFilter = state.sessionLocked ? state.session.rack : null;
+
+        const filtered = state.soLogs.filter(log => !rackFilter || log.rack === rackFilter);
+
+        let totalItems = filtered.length;
+        let totalQty = filtered.reduce((acc, curr) => acc + curr.qty, 0);
+
+        document.getElementById('statSessionItems').textContent = totalItems;
+        document.getElementById('statSessionQty').textContent = totalQty;
+
+        if (filtered.length === 0) {
+          listContainer.innerHTML = `<div class="text-center py-6 text-slate-500 text-xs">Belum ada entri untuk sesi ini.</div>`;
+          return;
+        }
+
+        listContainer.innerHTML = filtered.map(log => `
+          <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 flex items-center justify-between text-xs shadow">
+            <div class="space-y-0.5 max-w-[68%]">
+              <h5 class="font-bold text-slate-200 truncate text-[11px]">${log.name}</h5>
+              <div class="flex items-center gap-1.5 text-[9px] font-mono text-slate-400">
+                <span>SKU: ${log.sku}</span>
+                <span>•</span>
+                <span>${new Date(log.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+              </div>
+            </div>
+            <div class="text-right">
+              <span class="text-xs font-black font-mono text-emerald-400 bg-emerald-950/50 border border-emerald-800/60 px-2 py-0.5 rounded-lg shadow">${log.qty} pcs</span>
+            </div>
+          </div>
+        `).join('');
+      },
+
+      renderHasilSoTable() {
+        const container = document.getElementById('hasilSoCardContainer');
+        const searchVal = (document.getElementById('searchHasilSoInput').value || '').toLowerCase();
+
+        const filtered = state.soLogs.filter(item => {
+          return !searchVal || 
+            item.rack.toLowerCase().includes(searchVal) ||
+            item.officer.toLowerCase().includes(searchVal) ||
+            item.sku.toLowerCase().includes(searchVal) ||
+            item.name.toLowerCase().includes(searchVal);
+        });
+
+        if (filtered.length === 0) {
+          container.innerHTML = `<div class="p-6 text-center text-slate-500 text-xs">Tidak ada log data hasil SO.</div>`;
+          return;
+        }
+
+        container.innerHTML = filtered.map(log => `
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-1.5 shadow">
+            <div class="flex items-center justify-between text-[10px] font-mono border-b border-slate-800/80 pb-1.5">
+              <span class="text-amber-400 font-bold">Rak: ${log.rack}</span>
+              <span class="text-slate-400">${new Date(log.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+            </div>
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <h4 class="text-xs font-bold text-slate-100">${log.name}</h4>
+                <div class="flex items-center gap-2 text-[10px] font-mono text-slate-400 mt-0.5">
+                  <span>SKU: <strong class="text-emerald-400">${log.sku}</strong></span>
+                  <span>Petugas: <strong>${log.officer}</strong></span>
+                </div>
+              </div>
+              <div class="text-right shrink-0">
+                <span class="text-sm font-black font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2 py-0.5 rounded-lg">${log.qty} Pcs</span>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      },
+
+      async fetchRevisiSheetData() {
+        const refreshIcon = document.getElementById('refreshRevisiIcon');
+        if (refreshIcon) refreshIcon.classList.add('fa-spin');
+
+        try {
+          const response = await fetch(`${state.webhookUrl}?action=GET_REVISI_LIST`);
+          if (response.ok) {
+            const result = await response.json();
+            if (result.status === 'success' && result.data) {
+              state.revisiItems = result.data;
             }
-            updateIndicators();
+          }
+        } catch (e) {
+          if (state.revisiItems.length === 0) {
+            state.revisiItems = [
+              { id: 'REV-1', officer: 'Budi Surtok', rack: 'RAK-A01', sku: 'SKU-1002', barcode: '88012345678', name: 'Minyak Goreng Tropical 2L', audit: 10, surtok: 12, selisih: -2, qtyRevisi: '' },
+              { id: 'REV-2', officer: 'Andi Surtok', rack: 'RAK-B05', sku: 'SKU-1005', barcode: '88012345679', name: 'Beras Premium Top 5kg', audit: 20, surtok: 15, selisih: 5, qtyRevisi: '18' },
+              { id: 'REV-3', officer: 'Hendra Audit', rack: 'RAK-C10', sku: 'SKU-1012', barcode: '88012345680', name: 'Gula Pasir Gulaku 1kg', audit: 50, surtok: 45, selisih: 5, qtyRevisi: '' },
+            ];
+          }
+        } finally {
+          if (refreshIcon) refreshIcon.classList.remove('fa-spin');
+          this.renderRevisiTable();
+        }
+      },
+
+      renderRevisiTable() {
+        const container = document.getElementById('revisiCardContainer');
+        const fOfficer = document.getElementById('filterRevOfficer').value;
+        const fRack = (document.getElementById('filterRevRack').value || '').toUpperCase();
+        const fStatus = document.getElementById('filterRevStatus').value;
+        const fSearch = (document.getElementById('filterRevSearch').value || '').toLowerCase();
+
+        const filtered = state.revisiItems.filter(item => {
+          if (fOfficer && item.officer !== fOfficer) return false;
+          if (fRack && !item.rack.toUpperCase().includes(fRack)) return false;
+          
+          const isRevised = item.qtyRevisi !== null && item.qtyRevisi !== undefined && String(item.qtyRevisi).trim() !== '';
+          if (fStatus === 'BELUM' && isRevised) return false;
+          if (fStatus === 'SUDAH' && !isRevised) return false;
+
+          if (fSearch) {
+            const match = item.sku.toLowerCase().includes(fSearch) ||
+                          (item.barcode && item.barcode.toLowerCase().includes(fSearch)) ||
+                          item.name.toLowerCase().includes(fSearch);
+            if (!match) return false;
+          }
+          return true;
+        });
+
+        document.getElementById('statRevTotal').textContent = state.revisiItems.length;
+        document.getElementById('statRevPending').textContent = state.revisiItems.filter(i => !i.qtyRevisi || String(i.qtyRevisi).trim() === '').length;
+        document.getElementById('statRevDone').textContent = state.revisiItems.filter(i => i.qtyRevisi && String(i.qtyRevisi).trim() !== '').length;
+
+        document.getElementById('revisiTotalBadge').textContent = `${filtered.length} Items`;
+        document.getElementById('revisiCountBadge').textContent = state.revisiItems.filter(i => !i.qtyRevisi || String(i.qtyRevisi).trim() === '').length;
+
+        if (filtered.length === 0) {
+          container.innerHTML = `<div class="p-6 text-center text-slate-500 text-xs">Tidak ada item selisih revisi sesuai filter.</div>`;
+          return;
         }
 
-        async function fetchAllData() {
-            const spin = document.getElementById('icon-sync-spin');
-            if (spin) spin.classList.add('fa-spin');
+        container.innerHTML = filtered.map(item => `
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 space-y-2 shadow">
+            <div class="flex items-center justify-between border-b border-slate-800/80 pb-1.5">
+              <span class="font-mono font-bold text-amber-400 text-xs">Rak: ${item.rack}</span>
+              <span class="text-[10px] text-slate-400 font-mono">${item.officer}</span>
+            </div>
 
-            try {
-                await Promise.all([
-                    fetchOfficerList(),
-                    fetchMasterData(),
-                    fetchRevisiSheetData()
-                ]);
-                showToast("✓ Berhasil sinkronisasi Master, Petugas & Revisi SO", "success");
-            } catch (err) {
-                console.error("Error fetching all data", err);
-            } finally {
-                if (spin) spin.classList.remove('fa-spin');
-            }
+            <div class="space-y-0.5">
+              <h4 class="text-xs font-black text-white leading-tight">${item.name}</h4>
+              <p class="text-[10px] font-mono text-emerald-400">SKU: ${item.sku}</p>
+            </div>
+
+            <div class="grid grid-cols-4 gap-1 text-center font-mono text-[10px] bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+              <div class="bg-amber-950/30 p-1 rounded-lg">
+                <span class="text-[8px] text-slate-400 block">AUDIT</span>
+                <strong class="text-amber-300 font-bold">${item.audit}</strong>
+              </div>
+              <div class="bg-emerald-950/30 p-1 rounded-lg">
+                <span class="text-[8px] text-slate-400 block">SURTOK</span>
+                <strong class="text-emerald-300 font-bold">${item.surtok}</strong>
+              </div>
+              <div class="bg-rose-950/30 p-1 rounded-lg">
+                <span class="text-[8px] text-slate-400 block">SELISIH</span>
+                <strong class="font-bold ${item.selisih < 0 ? 'text-rose-400' : 'text-amber-400'}">${item.selisih}</strong>
+              </div>
+              <div class="bg-sky-950/40 p-1 rounded-lg border border-sky-800/40">
+                <span class="text-[8px] text-sky-400 block">REVISI</span>
+                <strong class="text-sky-300 font-bold">${item.qtyRevisi !== '' && item.qtyRevisi !== undefined ? item.qtyRevisi : '-'}</strong>
+              </div>
+            </div>
+
+            <div class="pt-1 flex justify-end">
+              <button onclick="app.openRevisiModal('${item.id}')" class="px-3.5 py-2 bg-gradient-to-r from-sky-600 to-brand-600 active:from-sky-500 active:to-brand-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow active:scale-95">
+                <i class="fa-solid fa-pen-to-square"></i> Update Qty Revisi
+              </button>
+            </div>
+          </div>
+        `).join('');
+      },
+
+      openRevisiModal(id) {
+        haptics.vibrate(30);
+        const item = state.revisiItems.find(i => i.id === id);
+        if (!item) return;
+
+        state.activeRevisiEdit = item;
+        document.getElementById('revModalTitle').textContent = item.name;
+        document.getElementById('revModalSubtitle').textContent = `SKU: ${item.sku} | Rak: ${item.rack}`;
+        document.getElementById('revModalQtyInput').value = item.qtyRevisi || item.audit || '0';
+
+        document.getElementById('revisiModal').classList.remove('hidden');
+      },
+
+      closeRevisiModal() {
+        haptics.vibrate(15);
+        document.getElementById('revisiModal').classList.add('hidden');
+        state.activeRevisiEdit = null;
+      },
+
+      adjustRevModalQty(delta) {
+        haptics.vibrate(15);
+        const input = document.getElementById('revModalQtyInput');
+        let current = parseInt(input.value) || 0;
+        input.value = Math.max(0, current + delta);
+      },
+
+      confirmRevisiQtyUpdate() {
+        haptics.vibrate(40);
+        if (!state.activeRevisiEdit) return;
+
+        const newVal = document.getElementById('revModalQtyInput').value.trim();
+        const item = state.activeRevisiEdit;
+
+        item.qtyRevisi = newVal;
+        this.renderRevisiTable();
+        this.closeRevisiModal();
+
+        this.postToWebhook({
+          action: 'UPDATE_QTY_REVISI',
+          data: { id: item.id, sku: item.sku, qtyRevisi: newVal }
+        }).then(success => {
+          if (success) {
+            this.showToast(`Updated QTY Revisi SKU [${item.sku}]!`, 'emerald');
+          } else {
+            state.pendingQueue.push({ action: 'UPDATE_QTY_REVISI', data: { id: item.id, sku: item.sku, qtyRevisi: newVal } });
+            localStorage.setItem('so_pendingQueue', JSON.stringify(state.pendingQueue));
+            this.updateSyncQueueBadge();
+            this.showToast('Disimpan di Queue lokal.', 'indigo');
+          }
+        });
+      },
+
+      renderRackCompletionMatrix() {
+        const container = document.getElementById('rackCompletionList');
+        
+        const rackMap = new Map();
+        state.soLogs.forEach(log => {
+          if (!rackMap.has(log.rack)) {
+            rackMap.set(log.rack, { surtok: false, audit: false, totalQty: 0 });
+          }
+          const info = rackMap.get(log.rack);
+          if (log.team === 'SURTOK') info.surtok = true;
+          if (log.team === 'AUDIT') info.audit = true;
+          info.totalQty += log.qty;
+        });
+
+        document.getElementById('rackMatrixCount').textContent = `${rackMap.size} Rak Terdata`;
+
+        if (rackMap.size === 0) {
+          container.innerHTML = `<div class="text-center py-4 text-xs text-slate-500">Belum ada rak terdata.</div>`;
+          return;
         }
 
-        async function fetchOfficerList() {
-            const drop = document.getElementById('select-officer-dropdown');
-            const filterSoDrop = document.getElementById('so-filter-officer');
-            const filterAdmDrop = document.getElementById('adm-filter-officer');
-            
-            OFFICER_LIST = [];
+        let html = '';
+        rackMap.forEach((info, rackName) => {
+          html += `
+            <div class="flex items-center justify-between text-xs bg-slate-900 p-2.5 rounded-xl border border-slate-800 shadow">
+              <span class="font-mono font-bold text-amber-400 text-[11px]">${rackName}</span>
+              <div class="flex items-center gap-1.5">
+                <span class="px-2 py-0.5 rounded text-[9px] font-bold ${info.surtok ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-slate-800 text-slate-600'}">SURTOK</span>
+                <span class="px-2 py-0.5 rounded text-[9px] font-bold ${info.audit ? 'bg-purple-950 text-purple-400 border border-purple-800' : 'bg-slate-800 text-slate-600'}">AUDIT</span>
+              </div>
+            </div>
+          `;
+        });
+        container.innerHTML = html;
+      },
 
-            const sheetId = extractSpreadsheetId(SPREADSHEET_URL);
-            if (sheetId) {
-                try {
-                    const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent('Petugas')}`;
-                    const response = await fetch(csvUrl);
-                    if (response.ok) {
-                        const text = await response.text();
-                        const lines = parseCSVLines(text);
-                        for (let i = 0; i < lines.length; i++) {
-                            const row = lines[i];
-                            if (!row || row.length === 0) continue;
+      renderOfficerAdminList() {
+        const surtokUl = document.getElementById('listSurtokOfficers');
+        const auditUl = document.getElementById('listAuditOfficers');
 
-                            let nameCandidate = "";
-                            for (let col = 0; col < row.length; col++) {
-                                let val = String(row[col] || '').replace(/^['"]+|['"]+$/g, '').trim();
-                                if (!val) continue;
+        surtokUl.innerHTML = state.officers.SURTOK.map(o => `<li class="flex items-center justify-between py-0.5"><span>${o}</span> <button onclick="app.removeOfficer('SURTOK', '${o}')" class="text-rose-500 hover:text-rose-400">&times;</button></li>`).join('');
+        auditUl.innerHTML = state.officers.AUDIT.map(o => `<li class="flex items-center justify-between py-0.5"><span>${o}</span> <button onclick="app.removeOfficer('AUDIT', '${o}')" class="text-rose-500 hover:text-rose-400">&times;</button></li>`).join('');
+      },
 
-                                const valLower = val.toLowerCase();
-                                if (valLower === 'no' || valLower === 'id' || valLower === 'nama' || valLower === 'nama petugas' || valLower === 'petugas' || valLower === 'officer' || valLower === 'peran' || valLower === 'role') {
-                                    continue;
-                                }
-                                if (/^\d+$/.test(val) && col === 0) {
-                                    continue;
-                                }
-                                nameCandidate = val;
-                                break;
-                            }
+      addOfficerPrompt() {
+        haptics.vibrate(20);
+        const team = prompt('Pilih Tim (SURTOK / AUDIT):', 'SURTOK');
+        if (!team || (team.toUpperCase() !== 'SURTOK' && team.toUpperCase() !== 'AUDIT')) return;
+        const name = prompt('Nama Petugas Baru:');
+        if (!name || !name.trim()) return;
 
-                            if (nameCandidate && !OFFICER_LIST.includes(nameCandidate)) {
-                                OFFICER_LIST.push(nameCandidate);
-                            }
-                        }
-                    }
-                } catch (e) {
-                    console.warn("GSheet officers fetch error", e);
-                }
-            }
+        state.officers[team.toUpperCase()].push(name.trim());
+        localStorage.setItem('so_officers', JSON.stringify(state.officers));
+        this.populateOfficerDropdowns();
+        this.renderOfficerAdminList();
+        this.showToast(`Petugas ${name} ditambahkan`, 'emerald');
+      },
 
-            if (drop) {
-                let opts = `<option value="">-- Pilih Petugas --</option>`;
-                OFFICER_LIST.forEach(name => {
-                    opts += `<option value="${name}">${name}</option>`;
-                });
-                opts += `<option value="__custom__">+ Ketik Nama Manual...</option>`;
-                drop.innerHTML = opts;
-            }
+      removeOfficer(team, name) {
+        haptics.vibrate(20);
+        state.officers[team] = state.officers[team].filter(o => o !== name);
+        localStorage.setItem('so_officers', JSON.stringify(state.officers));
+        this.populateOfficerDropdowns();
+        this.renderOfficerAdminList();
+      },
 
-            [filterSoDrop, filterAdmDrop].forEach(d => {
-                if (d) {
-                    let filterOpts = `<option value="">-- Semua Petugas --</option>`;
-                    OFFICER_LIST.forEach(name => {
-                        filterOpts += `<option value="${name}">${name}</option>`;
-                    });
-                    d.innerHTML = filterOpts;
-                }
-            });
+      async seedMockMasterData(notify = true) {
+        const mockBatch = [];
+        const categories = ['BEVERAGE', 'SNACK', 'GROCERY', 'PERSONAL CARE', 'HOUSEHOLD'];
+        
+        for (let i = 1000; i <= 2000; i++) {
+          const sku = `SKU-${i}`;
+          const barcode = `8809988${i}`;
+          const cat = categories[i % categories.length];
+          mockBatch.push({
+            sku: sku,
+            barcode: barcode,
+            name: `Produk Retail Sample #${i}`,
+            family: cat
+          });
         }
 
-        function setAppOperationMode(mode) {
-            appOperationMode = mode;
+        await dbEngine.saveItemsBatch(mockBatch);
+        mockBatch.forEach(item => {
+          state.masterItemsMap.set(item.sku, item);
+          state.masterItemsMap.set(item.barcode, item);
+        });
 
-            const btnSO = document.getElementById('mode-btn-so');
-            const btnRevisi = document.getElementById('mode-btn-revisi');
-            const sessionBox = document.getElementById('section-session-box');
-            const scanTitle = document.getElementById('scan-box-title');
-            const revisiListSec = document.getElementById('section-revisi-list-container');
+        this.updateMasterCountDisplay();
+        if (notify) this.showToast('1,000 Master SKU ditanam ke HP IndexedDB!', 'emerald');
+      },
 
-            resetProductSelection();
-            resetRevisiSelection();
+      async flushMasterDatabase() {
+        haptics.vibrate(30);
+        await dbEngine.clearMasterStore();
+        state.masterItemsMap.clear();
+        this.updateMasterCountDisplay();
+        this.showToast('Cache Master SKU dikosongkan!', 'indigo');
+      },
 
-            if (mode === 'SO') {
-                if (btnSO) btnSO.className = "py-2 rounded-xl bg-indigo-600 text-white shadow-sm flex items-center justify-center space-x-1.5 transition";
-                if (btnRevisi) btnRevisi.className = "py-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-rose-50 hover:text-rose-700 flex items-center justify-center space-x-1.5 transition";
-                if (sessionBox) sessionBox.classList.remove('hidden');
-                if (scanTitle) scanTitle.innerHTML = `<i class="fa-solid fa-barcode text-indigo-600 mr-1.5"></i> Scan / Ketik Kode Stock`;
-                if (revisiListSec) revisiListSec.classList.add('hidden');
-            } else {
-                if (btnSO) btnSO.className = "py-2 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center space-x-1.5 transition";
-                if (btnRevisi) btnRevisi.className = "py-2 rounded-xl bg-rose-600 text-white shadow-sm flex items-center justify-center space-x-1.5 transition";
-                if (sessionBox) sessionBox.classList.remove('hidden');
-                if (scanTitle) scanTitle.innerHTML = `<i class="fa-solid fa-pen-to-square text-rose-600 mr-1.5"></i> Scan / Cari Item REVISI SO`;
-                if (revisiListSec) revisiListSec.classList.remove('hidden');
+      updateMasterCountDisplay() {
+        const count = state.masterItemsMap.size / 2;
+        document.getElementById('masterSkuCountBadge').textContent = `${Math.round(count)} SKU Cached`;
+      },
 
-                if (REVISI_PRODUCTS.length === 0) {
-                    fetchRevisiSheetData(true);
-                } else {
-                    renderRevisiDataList();
-                }
-            }
+      async postToWebhook(payload) {
+        if (!navigator.onLine || !state.webhookUrl) return false;
+        try {
+          const res = await fetch(state.webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload)
+          });
+          return res.ok;
+        } catch (e) {
+          return false;
+        }
+      },
+
+      async syncPendingQueue() {
+        haptics.vibrate(30);
+        if (state.pendingQueue.length === 0) {
+          this.showToast('Queue lokal kosong.', 'indigo');
+          return;
         }
 
-        function extractSpreadsheetId(url) {
-            if (!url) return null;
-            const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
-            return match ? match[1] : null;
+        const syncIcon = document.getElementById('syncIcon');
+        syncIcon.classList.add('fa-spin');
+
+        let successCount = 0;
+        const remainingQueue = [];
+
+        for (let task of state.pendingQueue) {
+          const ok = await this.postToWebhook(task);
+          if (ok) {
+            successCount++;
+          } else {
+            remainingQueue.push(task);
+          }
         }
 
-        function parseCleanNumber(val) {
-            if (val === undefined || val === null) return 0;
-            let s = String(val).replace(/^['"]+|['"]+$/g, '').trim();
-            if (!s) return 0;
-            s = s.replace(/[\u00A0\s]/g, '');
-            if (s.includes(',') && !s.includes('.')) {
-                s = s.replace(',', '.');
-            } else if (s.includes('.') && s.includes(',')) {
-                if (s.indexOf('.') < s.indexOf(',')) {
-                    s = s.replace(/\./g, '').replace(',', '.');
-                } else {
-                    s = s.replace(/,/g, '');
-                }
-            } else if (s.includes(',')) {
-                s = s.replace(/,/g, '');
-            }
-            const num = parseFloat(s);
-            return isNaN(num) ? 0 : num;
+        state.pendingQueue = remainingQueue;
+        localStorage.setItem('so_pendingQueue', JSON.stringify(state.pendingQueue));
+        this.updateSyncQueueBadge();
+        syncIcon.classList.remove('fa-spin');
+
+        this.showToast(`Berhasil sync ${successCount} item!`, 'emerald');
+      },
+
+      updateSyncQueueBadge() {
+        const badge = document.getElementById('syncQueueBadge');
+        if (state.pendingQueue.length > 0) {
+          badge.textContent = state.pendingQueue.length;
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+        }
+      },
+
+      updateNetworkStatus(isOnline) {
+        const dot = document.getElementById('netStatusDot');
+        const txt = document.getElementById('netStatusText');
+        if (isOnline) {
+          dot.className = "w-2 h-2 rounded-full bg-emerald-500";
+          txt.textContent = "Online";
+        } else {
+          dot.className = "w-2 h-2 rounded-full bg-rose-500 animate-pulse";
+          txt.textContent = "Offline";
+        }
+      },
+
+      openScannerModal() {
+        haptics.vibrate(40);
+        document.getElementById('scannerModal').classList.remove('hidden');
+        
+        if (!state.scanner) {
+          state.scanner = new Html5Qrcode("reader");
         }
 
-        async function fetchRevisiSheetData(forceRefresh = false) {
-            const sheetId = extractSpreadsheetId(SPREADSHEET_URL);
-            const container = document.getElementById('revisi-items-card-list');
+        state.scanner.start(
+          { facingMode: "environment" },
+          { fps: 12, qrbox: { width: 240, height: 240 } },
+          (decodedText) => {
+            document.getElementById('barcodeInput').value = decodedText;
+            this.handleBarcodeInput(decodedText);
+            this.closeScannerModal();
+          },
+          (errorMessage) => {}
+        ).catch(err => {
+          this.showToast('Kamera gagal: ' + err, 'rose');
+        });
+      },
 
-            if (container && (forceRefresh || REVISI_PRODUCTS.length === 0)) {
-                container.innerHTML = `
-                    <div class="py-6 text-center text-slate-500 text-xs flex items-center justify-center space-x-2">
-                        <i class="fa-solid fa-spinner fa-spin text-rose-600"></i>
-                        <span>Memuat data dari Sheet 'Revisi SO'...</span>
-                    </div>`;
-            }
+      closeScannerModal() {
+        haptics.vibrate(20);
+        if (state.scanner) {
+          state.scanner.stop().then(() => {
+            document.getElementById('scannerModal').classList.add('hidden');
+          }).catch(() => {
+            document.getElementById('scannerModal').classList.add('hidden');
+          });
+        } else {
+          document.getElementById('scannerModal').classList.add('hidden');
+        }
+      },
 
-            if (!sheetId) {
-                if (container) {
-                    container.innerHTML = `
-                        <div class="bg-rose-50 border border-rose-200 rounded-xl p-3 text-center space-y-1.5 text-xs text-rose-800">
-                            <div class="font-black text-rose-700 flex items-center justify-center gap-1">
-                                <i class="fa-solid fa-triangle-exclamation"></i> Link Spreadsheet Belum Diisi
-                            </div>
-                            <p class="text-[11px] text-slate-600">Buka menu <strong>Settings</strong> di pojok kanan atas, lalu masukkan Link Google Spreadsheet Anda.</p>
-                            <button onclick="openConfigModal()" class="mt-1 px-3 py-1 bg-indigo-600 text-white text-[11px] font-bold rounded-lg hover:bg-indigo-700">
-                                Buka Settings
-                            </button>
-                        </div>`;
-                }
-                return;
-            }
-
-            let csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent('Revisi SO')}`;
-
-            try {
-                let response = await fetch(csvUrl);
-                
-                if (!response.ok) {
-                    const altUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=RevisiSO`;
-                    const altResp = await fetch(altUrl);
-                    if (altResp.ok) {
-                        response = altResp;
-                    }
-                }
-
-                if (!response.ok) {
-                    if (container) {
-                        container.innerHTML = `
-                            <div class="bg-rose-50 border border-rose-200 rounded-xl p-3 text-center space-y-2 text-xs text-rose-800">
-                                <div class="font-black text-rose-700 flex items-center justify-center gap-1">
-                                    <i class="fa-solid fa-circle-exclamation text-rose-600"></i> Gagal Memuat Sheet 'Revisi SO'
-                                </div>
-                                <p class="text-[11px] text-slate-600 font-medium">Periksa 2 hal berikut pada Google Spreadsheet Anda:</p>
-                                <ul class="text-[10px] text-left list-disc pl-5 space-y-1 text-slate-700 font-semibold bg-white/80 p-2 rounded-lg border border-rose-100">
-                                    <li><strong>1. Akses Spreadsheet:</strong> Klik tombol <span class="bg-indigo-100 text-indigo-800 px-1 py-0.5 rounded font-bold">Bagikan (Share)</span> &rarr; Ubah Akses Umum menjadi <span class="bg-emerald-100 text-emerald-800 px-1 py-0.5 rounded font-bold">"Siapa saja yang memiliki link" (Pelihat)</span>.</li>
-                                    <li><strong>2. Nama Tab:</strong> Pastikan nama tab persis bernama <span class="bg-rose-100 text-rose-900 px-1 py-0.5 rounded font-bold">Revisi SO</span>.</li>
-                                </ul>
-                                <button onclick="fetchRevisiSheetData(true)" class="mt-2 px-3 py-1.5 bg-rose-600 text-white text-[11px] font-extrabold rounded-xl hover:bg-rose-700 shadow-sm flex items-center justify-center space-x-1 mx-auto">
-                                    <i class="fa-solid fa-rotate"></i>
-                                    <span>Coba Muat Ulang</span>
-                                </button>
-                            </div>`;
-                    }
-                    return;
-                }
-
-                const text = await response.text();
-                const lines = parseCSVLines(text);
-                if (lines.length <= 1) {
-                    if (container) container.innerHTML = `<div class="py-6 text-center text-slate-400 text-xs">Belum ada baris data pada Sheet 'Revisi SO'.</div>`;
-                    return;
-                }
-
-                REVISI_PRODUCTS = [];
-                const localRevisions = JSON.parse(localStorage.getItem('so_revisi_cache') || '{}');
-
-                let colIdx = {
-                    petugas: -1,
-                    rak: -1,
-                    kode_item: -1,
-                    kode_original: -1,
-                    nama_item: -1,
-                    qty_so: -1,
-                    qty_onhand: -1,
-                    selisih: -1,
-                    qty_revisi: -1
-                };
-
-                const headerRow = lines[0] || [];
-                headerRow.forEach((colName, idx) => {
-                    const cleanName = String(colName || '').toLowerCase().trim();
-                    if (cleanName.includes('petugas') || cleanName.includes('officer')) {
-                        colIdx.petugas = idx;
-                    } else if (cleanName.includes('rak') || cleanName.includes('lokasi')) {
-                        colIdx.rak = idx;
-                    } else if (cleanName.includes('kode item') || cleanName.includes('kode stock') || cleanName.includes('sku')) {
-                        colIdx.kode_item = idx;
-                    } else if (cleanName.includes('kode original') || cleanName.includes('original') || cleanName.includes('barcode')) {
-                        colIdx.kode_original = idx;
-                    } else if (cleanName.includes('nama item') || cleanName.includes('nama barang') || cleanName.includes('nama')) {
-                        colIdx.nama_item = idx;
-                    } else if (cleanName.includes('qty so') || cleanName === 'so') {
-                        colIdx.qty_so = idx;
-                    } else if (cleanName.includes('onhand') || cleanName.includes('on hand')) {
-                        colIdx.qty_onhand = idx;
-                    } else if (cleanName.includes('selisih')) {
-                        colIdx.selisih = idx;
-                    } else if (cleanName.includes('revisi')) {
-                        colIdx.qty_revisi = idx;
-                    }
-                });
-
-                if (colIdx.petugas === -1) colIdx.petugas = 0;
-                if (colIdx.rak === -1) colIdx.rak = 1;
-                if (colIdx.kode_item === -1) colIdx.kode_item = 2;
-                if (colIdx.kode_original === -1) colIdx.kode_original = 3;
-                if (colIdx.nama_item === -1) colIdx.nama_item = 4;
-                if (colIdx.qty_so === -1) colIdx.qty_so = 5;
-                if (colIdx.qty_onhand === -1) colIdx.qty_onhand = 6;
-                if (colIdx.selisih === -1) colIdx.selisih = 7;
-                if (colIdx.qty_revisi === -1) colIdx.qty_revisi = 8;
-
-                for (let i = 1; i < lines.length; i++) {
-                    const row = lines[i];
-                    if (!row || row.length < 2) continue;
-
-                    const petugasVal = String(row[colIdx.petugas] || '').trim();
-                    const rakVal = String(row[colIdx.rak] || '').trim();
-                    const kodeItem = String(row[colIdx.kode_item] || '').replace(/^['"]+|['"]+$/g, '').trim();
-                    const kodeOriginal = String(row[colIdx.kode_original] || '').replace(/^['"]+|['"]+$/g, '').trim();
-                    const namaItem = String(row[colIdx.nama_item] || '').trim();
-                    
-                    const qtySO = parseCleanNumber(row[colIdx.qty_so]);
-                    const qtyOnhand = parseCleanNumber(row[colIdx.qty_onhand]);
-                    const selisih = parseCleanNumber(row[colIdx.selisih]);
-                    
-                    const qtyRevisiVal = row[colIdx.qty_revisi];
-                    let qtyRevisi = null;
-                    if (qtyRevisiVal !== undefined && qtyRevisiVal !== null && String(qtyRevisiVal).trim() !== '') {
-                        qtyRevisi = parseCleanNumber(qtyRevisiVal);
-                    } else if (localRevisions[kodeItem] !== undefined) {
-                        qtyRevisi = localRevisions[kodeItem];
-                    }
-
-                    if (kodeItem || namaItem) {
-                        REVISI_PRODUCTS.push({
-                            petugas: petugasVal || '-',
-                            rak: rakVal || '-',
-                            kode_item: kodeItem,
-                            kode_original: kodeOriginal,
-                            nama_item: namaItem,
-                            qty_so: qtySO,
-                            qty_onhand: qtyOnhand,
-                            selisih: selisih,
-                            qty_revisi: qtyRevisi
-                        });
-                    }
-                }
-
-                populateRevisiFilterDropdowns();
-                renderRevisiDataList();
-            } catch (err) {
-                console.error("Gagal muat data Revisi SO", err);
-                if (container) {
-                    container.innerHTML = `
-                        <div class="py-6 text-center text-rose-500 text-xs font-bold space-y-1">
-                            <i class="fa-solid fa-wifi text-lg text-rose-400 block mb-1"></i>
-                            <div>Koneksi bermasalah saat memuat Sheet Revisi SO.</div>
-                            <button onclick="fetchRevisiSheetData(true)" class="mt-2 px-3 py-1 bg-rose-600 text-white rounded-lg text-[10px]">Coba Lagi</button>
-                        </div>`;
-                }
-            }
+      exportHasilSoCsv() {
+        haptics.vibrate(30);
+        if (state.soLogs.length === 0) {
+          this.showToast('Tidak ada data export!', 'amber');
+          return;
         }
 
-        function populateRevisiFilterDropdowns() {
-            const dropOfficer = document.getElementById('rev-filter-officer');
-            const dropRack = document.getElementById('rev-filter-rack');
+        let csv = "ID SO,Time,Phase,Tim Petugas,Petugas,Rak,Kode Item,Kode Original,Nama Produk,Family,QTY\n";
+        state.soLogs.forEach(l => {
+          csv += `"${l.id}","${l.timestamp}","${l.phase}","${l.team}","${l.officer}","${l.rack}","${l.sku}","${l.barcode}","${l.name.replace(/"/g, '""')}","${l.family}",${l.qty}\n`;
+        });
 
-            if (!dropOfficer || !dropRack) return;
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Hasil_SO_Mobile_${new Date().toISOString().slice(0,10)}.csv`;
+        a.click();
+      },
 
-            const currentOfficer = dropOfficer.value;
-            const currentRack = dropRack.value;
+      saveSystemConfig() {
+        haptics.vibrate(30);
+        const url = document.getElementById('configWebhookUrl').value.trim();
+        state.webhookUrl = url;
+        localStorage.setItem('so_webhookUrl', url);
+        this.showToast('Konfigurasi disimpan!', 'emerald');
+      },
 
-            const officers = [...new Set(REVISI_PRODUCTS.map(p => p.petugas).filter(p => p && p !== '-'))].sort();
-            const racks = [...new Set(REVISI_PRODUCTS.map(p => p.rak).filter(r => r && r !== '-'))].sort();
-
-            let offHtml = `<option value="">-- Semua Petugas --</option>`;
-            officers.forEach(o => {
-                offHtml += `<option value="${o}">${o}</option>`;
-            });
-            dropOfficer.innerHTML = offHtml;
-            if (officers.includes(currentOfficer)) dropOfficer.value = currentOfficer;
-
-            let rackHtml = `<option value="">-- Semua Rak --</option>`;
-            racks.forEach(r => {
-                rackHtml += `<option value="${r}">${r}</option>`;
-            });
-            dropRack.innerHTML = rackHtml;
-            if (racks.includes(currentRack)) dropRack.value = currentRack;
+      showGasBackendCodeModal() {
+        haptics.vibrate(20);
+        const gasCode = `function doPost(e) {
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) {
+    return createJsonResponse({ status: "error", message: "Server busy lock timeout" });
+  }
+  
+  try {
+    var contents = JSON.parse(e.postData.contents);
+    var action = contents.action;
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    
+    if (action === "SAVE_SO_FISIK") {
+      var sheet = ss.getSheetByName("Hasil SO") || ss.insertSheet("Hasil SO");
+      var headers = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1)).getValues()[0];
+      var colMap = getHeaderMap(headers, [
+        "ID SO", "Time", "Phase", "Tim Petugas", "Petugas", 
+        "Rak", "Kode Item", "Kode Original", "Nama Produk", "Family", "qty"
+      ]);
+      
+      var data = contents.data;
+      var newRow = [];
+      newRow[colMap["ID SO"]] = data.id;
+      newRow[colMap["Time"]] = data.timestamp;
+      newRow[colMap["Phase"]] = data.phase;
+      newRow[colMap["Tim Petugas"]] = data.team;
+      newRow[colMap["Petugas"]] = data.officer;
+      newRow[colMap["Rak"]] = data.rack;
+      newRow[colMap["Kode Item"]] = data.sku;
+      newRow[colMap["Kode Original"]] = data.barcode;
+      newRow[colMap["Nama Produk"]] = data.name;
+      newRow[colMap["Family"]] = data.family;
+      newRow[colMap["qty"]] = data.qty;
+      
+      sheet.appendRow(newRow);
+      return createJsonResponse({status: "success"});
+    }
+    
+    if (action === "UPDATE_QTY_REVISI") {
+      var sheet = ss.getSheetByName("Revisi Double Cek SO");
+      var dataValues = sheet.getDataRange().getDisplayValues();
+      var headers = dataValues[0];
+      
+      var skuCol = headers.indexOf("Kode Item");
+      if (skuCol === -1) skuCol = headers.indexOf("Kode Item / SKU");
+      var qtyRevCol = headers.indexOf("QTY Revisi");
+      if (qtyRevCol === -1) qtyRevCol = headers.indexOf("Qty Revisi");
+      
+      for (var i = 1; i < dataValues.length; i++) {
+        if (dataValues[i][skuCol] === contents.data.sku) {
+          sheet.getRange(i + 1, qtyRevCol + 1).setValue(contents.data.qtyRevisi);
+          break;
         }
-
-        function parseCSVLines(text) {
-            const arr = [];
-            let row = [''];
-            let inQuotes = false;
-
-            for (let i = 0; i < text.length; i++) {
-                const c = text[i];
-                const next = text[i+1];
-
-                if (c === '"') {
-                    if (inQuotes && next === '"') {
-                        row[row.length - 1] += '"';
-                        i++;
-                    } else {
-                        inQuotes = !inQuotes;
-                    }
-                } else if (c === ',' && !inQuotes) {
-                    row.push('');
-                } else if ((c === '\r' || c === '\n') && !inQuotes) {
-                    if (c === '\r' && next === '\n') { i++; }
-                    arr.push(row);
-                    row = [''];
-                } else {
-                    row[row.length - 1] += c;
-                }
-            }
-            if (row.length > 1 || row[0] !== '') {
-                arr.push(row);
-            }
-            return arr;
-        }
-
-        function renderRevisiDataList() {
-            const container = document.getElementById('revisi-items-card-list');
-            const searchVal = (document.getElementById('input-revisi-list-search')?.value || '').toLowerCase().trim();
-            const officerVal = (document.getElementById('rev-filter-officer')?.value || '').toLowerCase().trim();
-            const rackVal = (document.getElementById('rev-filter-rack')?.value || '').toLowerCase().trim();
-            const statusVal = (document.getElementById('rev-filter-status')?.value || '').trim();
-
-            if (!container) return;
-
-            let filtered = REVISI_PRODUCTS.filter(item => {
-                const matchesSearch = !searchVal || 
-                    item.kode_item.toLowerCase().includes(searchVal) ||
-                    item.kode_original.toLowerCase().includes(searchVal) ||
-                    item.nama_item.toLowerCase().includes(searchVal);
-
-                const matchesOfficer = !officerVal || item.petugas.toLowerCase() === officerVal;
-                const matchesRack = !rackVal || item.rak.toLowerCase() === rackVal;
-
-                const isRevised = item.qty_revisi !== null && !isNaN(item.qty_revisi);
-                let matchesStatus = true;
-                if (statusVal === 'pending') {
-                    matchesStatus = !isRevised;
-                } else if (statusVal === 'done') {
-                    matchesStatus = isRevised;
-                }
-
-                return matchesSearch && matchesOfficer && matchesRack && matchesStatus;
-            });
-
-            const badge = document.getElementById('count-revisi-badge');
-            if (badge) badge.innerText = `${filtered.length} / ${REVISI_PRODUCTS.length}`;
-
-            if (filtered.length === 0) {
-                container.innerHTML = `<div class="py-8 text-center text-slate-400 text-xs">Tidak ada data item revisi yang cocok dengan filter.</div>`;
-                return;
-            }
-
-            let html = '';
-            filtered.forEach(item => {
-                const isRevised = item.qty_revisi !== null && !isNaN(item.qty_revisi);
-                const statusBadge = isRevised 
-                    ? `<span class="bg-emerald-100 text-emerald-800 text-[9px] font-extrabold px-2 py-0.5 rounded-md flex items-center gap-1"><i class="fa-solid fa-check"></i> Sudah Direvisi</span>`
-                    : `<span class="bg-amber-100 text-amber-800 text-[9px] font-extrabold px-2 py-0.5 rounded-md flex items-center gap-1"><i class="fa-solid fa-clock"></i> Belum Direvisi</span>`;
-
-                html += `
-                    <div class="bg-white border border-slate-200 rounded-xl p-3 shadow-sm space-y-2 hover:border-rose-300 transition">
-                        <div class="flex justify-between items-start">
-                            <div class="space-y-1">
-                                <div class="flex items-center space-x-1 flex-wrap gap-1">
-                                    <span class="bg-rose-600 text-white font-mono text-[10px] font-black px-1.5 py-0.5 rounded">${item.kode_item}</span>
-                                    <span class="bg-slate-100 text-slate-600 font-mono text-[9px] font-bold px-1 py-0.5 rounded">${item.kode_original || '-'}</span>
-                                    ${statusBadge}
-                                </div>
-                                <div class="font-extrabold text-xs text-slate-800 pt-0.5 leading-snug">${item.nama_item}</div>
-                                <div class="flex items-center space-x-1.5 text-[9px] text-slate-500 pt-0.5">
-                                    <span class="bg-indigo-50 text-indigo-700 font-bold px-1.5 py-0.5 rounded border border-indigo-100"><i class="fa-solid fa-user text-[8px] mr-1"></i>${item.petugas}</span>
-                                    <span class="bg-slate-100 text-slate-700 font-bold px-1.5 py-0.5 rounded border border-slate-200"><i class="fa-solid fa-location-dot text-[8px] mr-1"></i>${item.rak}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-4 gap-1 text-center text-[10px] bg-slate-50 p-1.5 rounded-lg border border-slate-100">
-                            <div>
-                                <span class="text-slate-400 block text-[8px] uppercase">Qty SO</span>
-                                <span class="font-bold text-slate-700">${item.qty_so}</span>
-                            </div>
-                            <div>
-                                <span class="text-slate-400 block text-[8px] uppercase">Onhand</span>
-                                <span class="font-bold text-slate-700">${item.qty_onhand}</span>
-                            </div>
-                            <div>
-                                <span class="text-slate-400 block text-[8px] uppercase">Selisih</span>
-                                <span class="font-black text-amber-600">${item.selisih}</span>
-                            </div>
-                            <div class="bg-rose-100/80 rounded p-0.5 border border-rose-200">
-                                <span class="text-rose-700 block text-[8px] font-bold uppercase">QTY REVISI</span>
-                                <span class="font-black text-rose-900">${isRevised ? item.qty_revisi : '-'}</span>
-                            </div>
-                        </div>
-
-                        <div class="flex justify-end pt-0.5">
-                            <button onclick="selectRevisiItemDirect('${item.kode_item}')" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-extrabold rounded-lg text-[11px] flex items-center space-x-1 btn-touch">
-                                <i class="fa-solid fa-pen-to-square"></i>
-                                <span>Edit Qty</span>
-                            </button>
-                        </div>
-                    </div>
-                `;
-            });
-
-            container.innerHTML = html;
-        }
-
-        function resetRevisiFilters() {
-            if (document.getElementById('rev-filter-officer')) document.getElementById('rev-filter-officer').value = "";
-            if (document.getElementById('rev-filter-rack')) document.getElementById('rev-filter-rack').value = "";
-            if (document.getElementById('rev-filter-status')) document.getElementById('rev-filter-status').value = "";
-            if (document.getElementById('input-revisi-list-search')) document.getElementById('input-revisi-list-search').value = "";
-            renderRevisiDataList();
-        }
-
-        function selectRevisiItemDirect(kodeItem) {
-            const cleanKey = String(kodeItem || '').toLowerCase().trim();
-            const found = REVISI_PRODUCTS.find(x => 
-                x.kode_item.toLowerCase().trim() === cleanKey ||
-                x.kode_original.toLowerCase().trim() === cleanKey
-            );
-
-            if (!found) {
-                showToast(`Item [${kodeItem}] tidak ditemukan di Sheet Revisi SO!`, "error");
-                return;
-            }
-
-            currentRevisiItem = found;
-
-            document.getElementById('rev-product-code').innerText = found.kode_item;
-            document.getElementById('rev-product-orig').innerText = found.kode_original || '-';
-            document.getElementById('rev-product-name').innerText = found.nama_item;
-            document.getElementById('rev-data-qty-so').innerText = found.qty_so;
-            document.getElementById('rev-data-qty-onhand').innerText = found.qty_onhand;
-            document.getElementById('rev-data-selisih').innerText = found.selisih;
-
-            const inputRevQty = document.getElementById('input-qty-revisi');
-            if (inputRevQty) {
-                inputRevQty.value = found.qty_revisi !== null ? found.qty_revisi : (found.qty_so || 0);
-            }
-
-            document.getElementById('section-revisi-result')?.classList.remove('hidden');
-            window.scrollTo({ top: document.getElementById('section-revisi-result').offsetTop - 20, behavior: 'smooth' });
-        }
-
-        function adjustQtyRevisi(delta) {
-            const input = document.getElementById('input-qty-revisi');
-            if (!input) return;
-            let val = parseFloat(input.value) || 0;
-            val = Math.max(0, val + delta);
-            input.value = val;
-        }
-
-        function resetRevisiSelection() {
-            currentRevisiItem = null;
-            document.getElementById('section-revisi-result')?.classList.add('hidden');
-        }
-
-        async function saveRevisiSO() {
-            if (!currentRevisiItem) {
-                showToast("Pilih barang revisi terlebih dahulu!", "error");
-                return;
-            }
-
-            const inputRevQty = document.getElementById('input-qty-revisi');
-            const btnSaveRev = document.getElementById('btn-save-revisi');
-            const qtyRevisiVal = parseFloat(inputRevQty ? inputRevQty.value : 0) || 0;
-
-            if (btnSaveRev) btnSaveRev.disabled = true;
-
-            try {
-                const payload = {
-                    action: "update_revisi",
-                    kode_stock: currentRevisiItem.kode_item,
-                    kode_item: currentRevisiItem.kode_item,
-                    kode_original: currentRevisiItem.kode_original || '',
-                    qty_revisi: qtyRevisiVal
-                };
-
-                const ok = await postToWebhook(payload);
-
-                if (ok) {
-                    showToast(`✓ QTY REVISI [${currentRevisiItem.kode_item}] diset ke ${qtyRevisiVal} di Sheet Revisi SO!`, "success");
-                    
-                    currentRevisiItem.qty_revisi = qtyRevisiVal;
-                    const itemInList = REVISI_PRODUCTS.find(p => p.kode_item === currentRevisiItem.kode_item);
-                    if (itemInList) {
-                        itemInList.qty_revisi = qtyRevisiVal;
-                    }
-
-                    const localRevisions = JSON.parse(localStorage.getItem('so_revisi_cache') || '{}');
-                    localRevisions[currentRevisiItem.kode_item] = qtyRevisiVal;
-                    localStorage.setItem('so_revisi_cache', JSON.stringify(localRevisions));
-
-                    resetRevisiSelection();
-                    renderRevisiDataList();
-                } else {
-                    showToast("Gagal memperbarui QTY Revisi ke Google Sheet! Periksa URL Webhook di Settings.", "error");
-                }
-            } finally {
-                if (btnSaveRev) btnSaveRev.disabled = false;
-            }
-        }
-
-        async function postToWebhook(data) {
-            if (!WEBHOOK_URL || !WEBHOOK_URL.startsWith('http')) return false;
-
-            try {
-                await fetch(WEBHOOK_URL, {
-                    method: 'POST',
-                    mode: 'no-cors', 
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(data)
-                });
-                return true;
-            } catch (err) {
-                console.error("Webhook post error:", err);
-                return false;
-            }
-        }
-
-        function switchMainView(view) {
-            const vScan = document.getElementById('view-scan-so');
-            const vData = document.getElementById('view-data-so');
-            const vAdmin = document.getElementById('view-admin-dashboard');
-
-            const btnScan = document.getElementById('nav-btn-scan');
-            const btnData = document.getElementById('nav-btn-data');
-            const btnAdmin = document.getElementById('nav-btn-admin');
-
-            [vScan, vData, vAdmin].forEach(v => v?.classList.add('hidden'));
-            [btnScan, btnData, btnAdmin].forEach(b => {
-                if (b) b.className = "py-2 rounded-xl text-indigo-300 hover:text-white hover:bg-indigo-900 flex flex-col items-center justify-center space-y-0.5 transition";
-            });
-
-            if (view === 'scan') {
-                vScan?.classList.remove('hidden');
-                if (btnScan) btnScan.className = "py-2 rounded-xl text-white bg-indigo-600 shadow-sm flex flex-col items-center justify-center space-y-0.5 transition";
-            } else if (view === 'data') {
-                vData?.classList.remove('hidden');
-                if (btnData) btnData.className = "py-2 rounded-xl text-white bg-indigo-600 shadow-sm flex flex-col items-center justify-center space-y-0.5 transition";
-                renderHistoryList();
-            } else if (view === 'admin') {
-                vAdmin?.classList.remove('hidden');
-                if (btnAdmin) btnAdmin.className = "py-2 rounded-xl text-white bg-indigo-600 shadow-sm flex flex-col items-center justify-center space-y-0.5 transition";
-                renderAdminDashboard();
-            }
-        }
-
-        function toggleLockSession() {
-            isSessionLocked = !isSessionLocked;
-            const inputs = document.getElementById('session-inputs');
-            const lockedInfo = document.getElementById('session-locked-info');
-            const btnToggle = document.getElementById('btn-toggle-lock');
-
-            if (isSessionLocked) {
-                const officerName = getOfficerName();
-                const roleName = document.getElementById('select-role').value;
-                const rackName = (document.getElementById('input-rack-name').value || '').trim().toUpperCase();
-
-                if (!officerName || !rackName) {
-                    showToast("Nama Petugas dan Kode Rak wajib diisi!", "error");
-                    isSessionLocked = false;
-                    return;
-                }
-
-                inputs?.classList.add('hidden');
-                lockedInfo?.classList.remove('hidden');
-
-                document.getElementById('disp-rack').innerText = rackName;
-                document.getElementById('disp-officer').innerText = officerName;
-                document.getElementById('disp-role').innerText = roleName;
-
-                if (btnToggle) btnToggle.innerHTML = `<i class="fa-solid fa-lock text-rose-500 mr-1"></i> Buka Kunci`;
-            } else {
-                inputs?.classList.remove('hidden');
-                lockedInfo?.classList.add('hidden');
-                if (btnToggle) btnToggle.innerHTML = `<i class="fa-solid fa-lock-open mr-1"></i> Edit Sesi`;
-            }
-        }
-
-        function getOfficerName() {
-            const drop = document.getElementById('select-officer-dropdown');
-            const custom = document.getElementById('input-officer-custom');
-            if (drop && drop.value === "__custom__") {
-                return (custom?.value || '').trim();
-            }
-            return drop ? drop.value : '';
-        }
-
-        function handleOfficerSelectChange() {
-            const drop = document.getElementById('select-officer-dropdown');
-            const custom = document.getElementById('input-officer-custom');
-            if (drop && drop.value === "__custom__") {
-                custom?.classList.remove('hidden');
-            } else {
-                custom?.classList.add('hidden');
-            }
-        }
-
-        function triggerBarcodeSearch() {
-            const input = document.getElementById('input-barcode');
-            const query = (input?.value || '').trim();
-            if (!query) {
-                showToast("Ketik atau scan kode barang!", "error");
-                return;
-            }
-
-            if (appOperationMode === 'REVISI') {
-                selectRevisiItemDirect(query);
-            } else {
-                searchProductAndDisplay(query);
-            }
-        }
-
-        function searchProductAndDisplay(query) {
-            const cleanQuery = query.toLowerCase();
-            const found = MASTER_PRODUCTS.find(p => 
-                String(p.kode_stock || '').toLowerCase() === cleanQuery ||
-                String(p.original_code || '').toLowerCase() === cleanQuery ||
-                String(p.nama_barang || '').toLowerCase().includes(cleanQuery)
-            );
-
-            if (!found) {
-                showToast(`SKU/Barcode [${query}] tidak ditemukan di Master Data!`, "error");
-                return;
-            }
-
-            currentProduct = found;
-            document.getElementById('res-product-code').innerText = found.kode_stock;
-            document.getElementById('res-product-orig').innerText = found.original_code || '-';
-            document.getElementById('res-product-family').innerText = found.family || '-';
-            document.getElementById('res-product-name').innerText = found.nama_barang;
-
-            document.getElementById('input-qty').value = 1;
-            document.getElementById('section-product-result')?.classList.remove('hidden');
-        }
-
-        function resetProductSelection() {
-            currentProduct = null;
-            document.getElementById('section-product-result')?.classList.add('hidden');
-            document.getElementById('input-barcode').value = '';
-        }
-
-        function adjustQty(delta) {
-            const input = document.getElementById('input-qty');
-            if (!input) return;
-            let val = parseFloat(input.value) || 0;
-            val = Math.max(0, val + delta);
-            input.value = val;
-        }
-
-        async function saveStockOpname() {
-            if (isSavingOpname) return;
-            if (!currentProduct) {
-                showToast("Pilih produk terlebih dahulu!", "error");
-                return;
-            }
-
-            const officerName = getOfficerName();
-            const roleName = document.getElementById('select-role').value;
-            const rackName = (document.getElementById('input-rack-name').value || '').trim().toUpperCase();
-
-            if (!officerName || !rackName) {
-                showToast("Nama Petugas & Kode Rak wajib diisi!", "error");
-                return;
-            }
-
-            isSavingOpname = true;
-            const btnSave = document.getElementById('btn-save-opname');
-            if (btnSave) btnSave.disabled = true;
-
-            try {
-                const qtyVal = parseFloat(document.getElementById('input-qty').value) || 0;
-                const recordId = "SO-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
-
-                const record = {
-                    id: recordId,
-                    timestamp: new Date().toLocaleString('id-ID'),
-                    petugas: officerName,
-                    peran: roleName,
-                    rak: rackName,
-                    kode_stock: currentProduct.kode_stock,
-                    original_code: currentProduct.original_code || '',
-                    nama_barang: currentProduct.nama_barang,
-                    family: currentProduct.family || '-',
-                    qty_fisik: qtyVal,
-                    synced_supabase: false,
-                    synced_gsheet: false
-                };
-
-                // ALUR UTAMA: SIMPAN KE SUPABASE DB TERLEBIH DAHULU
-                if (supabaseClient) {
-                    try {
-                        const { data: dbData, error: dbError } = await supabaseClient
-                            .from('stock_opname_logs')
-                            .insert([{
-                                id: record.id,
-                                timestamp: new Date().toISOString(),
-                                petugas: record.petugas,
-                                peran: record.peran,
-                                rak: record.rak,
-                                kode_stock: record.kode_stock,
-                                original_code: record.original_code,
-                                nama_barang: record.nama_barang,
-                                family: record.family,
-                                qty_fisik: record.qty_fisik,
-                                synced_supabase: true,
-                                synced_gsheet: false
-                            }]);
-
-                        if (!dbError) {
-                            record.synced_supabase = true;
-                        } else {
-                            console.warn("Supabase Insert Warn:", dbError);
-                        }
-                    } catch (e) {
-                        console.warn("Supabase Insert Ex:", e);
-                    }
-                }
-
-                // BACKUP DIRECT WEBHOOK PUSH (Jika Supabase Trigger belum terkonfigurasi)
-                const okGSheet = await postToWebhook({ record });
-                if (okGSheet) record.synced_gsheet = true;
-
-                localHistorySO.unshift(record);
-                localStorage.setItem('so_local_history', JSON.stringify(localHistorySO));
-
-                showToast(`✓ Stok Opname [${currentProduct.kode_stock}] Berhasil Disimpan!`, "success");
-                resetProductSelection();
-                renderHistoryList();
-            } finally {
-                isSavingOpname = false;
-                if (btnSave) btnSave.disabled = false;
-            }
-        }
-
-        function renderHistoryList() {
-            const container = document.getElementById('mobile-history-container');
-            const countBadge = document.getElementById('count-so-badge');
-            if (!container) return;
-
-            const filterOfficer = (document.getElementById('so-filter-officer')?.value || '').toLowerCase();
-            const filterRack = (document.getElementById('so-filter-rack')?.value || '').toLowerCase();
-            const filterSearch = (document.getElementById('so-filter-search')?.value || '').toLowerCase();
-
-            let filtered = localHistorySO.filter(item => {
-                const matchOff = !filterOfficer || item.petugas.toLowerCase() === filterOfficer;
-                const matchRack = !filterRack || item.rak.toLowerCase() === filterRack;
-                const matchSrch = !filterSearch || 
-                    item.nama_barang.toLowerCase().includes(filterSearch) ||
-                    item.kode_stock.toLowerCase().includes(filterSearch) ||
-                    item.original_code.toLowerCase().includes(filterSearch);
-                return matchOff && matchRack && matchSrch;
-            });
-
-            if (countBadge) countBadge.innerText = filtered.length;
-
-            if (filtered.length === 0) {
-                container.innerHTML = `
-                    <div class="py-8 text-center text-slate-400 text-xs space-y-1">
-                        <i class="fa-solid fa-clipboard-list text-2xl text-slate-300"></i>
-                        <p>Belum ada data opname yang cocok.</p>
-                    </div>`;
-                return;
-            }
-
-            let html = '';
-            filtered.forEach((item) => {
-                html += `
-                    <div class="bg-white border border-slate-200 rounded-xl p-3 shadow-sm space-y-2">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <div class="flex items-center space-x-1">
-                                    <span class="bg-indigo-600 text-white font-mono text-[10px] font-black px-1.5 py-0.5 rounded">${item.kode_stock}</span>
-                                    <span class="bg-slate-100 text-slate-600 text-[10px] font-bold px-1.5 py-0.5 rounded">${item.rak}</span>
-                                </div>
-                                <div class="font-extrabold text-xs text-slate-800 pt-1">${item.nama_barang}</div>
-                            </div>
-                            <div class="text-right">
-                                <span class="bg-emerald-100 text-emerald-800 font-black text-xs px-2 py-1 rounded-lg inline-block">
-                                    Qty: ${item.qty_fisik}
-                                </span>
-                            </div>
-                        </div>
-                        <div class="text-[9px] text-slate-400 flex justify-between items-center pt-1 border-t border-slate-100">
-                            <span><i class="fa-solid fa-user mr-1"></i>${item.petugas} (${item.peran})</span>
-                            <span>${item.timestamp}</span>
-                        </div>
-                    </div>
-                `;
-            });
-
-            container.innerHTML = html;
-        }
-
-        function resetHistoryFilters() {
-            if (document.getElementById('so-filter-officer')) document.getElementById('so-filter-officer').value = "";
-            if (document.getElementById('so-filter-rack')) document.getElementById('so-filter-rack').value = "";
-            if (document.getElementById('so-filter-search')) document.getElementById('so-filter-search').value = "";
-            renderHistoryList();
-        }
-
-        function startAutoSyncWorker() {
-            if (autoSyncTimer) clearInterval(autoSyncTimer);
-            autoSyncTimer = setInterval(async () => {
-                if (!WEBHOOK_URL || !WEBHOOK_URL.startsWith('http')) return;
-
-                const unSyncedLocal = localHistorySO.filter(item => !item.synced_gsheet);
-                if (unSyncedLocal.length > 0) {
-                    for (let item of unSyncedLocal) {
-                        const ok = await postToWebhook({ record: item });
-                        if (ok) {
-                            item.synced_gsheet = true;
-                        }
-                    }
-                    localStorage.setItem('so_local_history', JSON.stringify(localHistorySO));
-                    renderHistoryList();
-                }
-            }, 10000);
-        }
-
-        async function fetchMasterData() {
-            const sheetId = extractSpreadsheetId(SPREADSHEET_URL);
-            if (!sheetId) return;
-
-            const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent('Master Item')}`;
-
-            try {
-                const response = await fetch(csvUrl);
-                if (!response.ok) return;
-
-                const text = await response.text();
-                const lines = parseCSVLines(text);
-                if (lines.length <= 1) return;
-
-                MASTER_PRODUCTS = [];
-
-                for (let i = 1; i < lines.length; i++) {
-                    const row = lines[i];
-                    if (!row || row.length < 2) continue;
-
-                    MASTER_PRODUCTS.push({
-                        kode_stock: String(row[0] || '').trim(),
-                        original_code: String(row[1] || '').trim(),
-                        nama_barang: String(row[2] || '').trim(),
-                        family: String(row[3] || '-').trim()
-                    });
-                }
-
-                const countEl = document.getElementById('header-sku-count');
-                if (countEl) countEl.innerText = MASTER_PRODUCTS.length;
-            } catch (err) {
-                console.error("Gagal muat Master Item", err);
-            }
-        }
-
-        function setupBarcodeFieldListeners() {
-            const input = document.getElementById('input-barcode');
-            if (input) {
-                input.addEventListener('keyup', (e) => {
-                    if (e.key === 'Enter') triggerBarcodeSearch();
-                });
-            }
-        }
-
-        function updateIndicators() {
-            const spBadge = document.getElementById('supabase-status-badge');
-            const spText = document.getElementById('supabase-status-text');
-            const whLabel = document.getElementById('webhook-status-label');
-            const whIndicator = document.getElementById('webhook-sync-indicator');
-
-            if (supabaseClient) {
-                if (spBadge) spBadge.className = "px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/30 text-emerald-200 border border-emerald-400/40 flex items-center space-x-1";
-                if (spText) spText.innerText = "Supabase DB ON";
-            } else {
-                if (spBadge) spBadge.className = "px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-800 text-slate-400 border border-slate-600 flex items-center space-x-1";
-                if (spText) spText.innerText = "Supabase DB Off";
-            }
-
-            if (WEBHOOK_URL && WEBHOOK_URL.startsWith('http')) {
-                if (whLabel) whLabel.innerText = "GSheet Auto-Sync ON";
-                if (whIndicator) whIndicator.className = "cursor-pointer px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/30 text-emerald-200 border border-emerald-400/40 flex items-center space-x-1";
-            }
-        }
-
-        function openConfigModal() { document.getElementById('modal-config')?.classList.remove('hidden'); }
-        function closeConfigModal() { document.getElementById('modal-config')?.classList.add('hidden'); }
-
-        function loadConfigFields() {
-            const cfgGsheet = document.getElementById('cfg-gsheet-url');
-            const cfgWebhook = document.getElementById('cfg-webhook-url');
-            const cfgSpUrl = document.getElementById('cfg-supabase-url');
-            const cfgSpKey = document.getElementById('cfg-supabase-key');
-
-            if (cfgGsheet) cfgGsheet.value = SPREADSHEET_URL;
-            if (cfgWebhook) cfgWebhook.value = WEBHOOK_URL;
-            if (cfgSpUrl) cfgSpUrl.value = SUPABASE_URL;
-            if (cfgSpKey) cfgSpKey.value = SUPABASE_KEY;
-        }
-
-        function saveAllConfigs() {
-            SPREADSHEET_URL = document.getElementById('cfg-gsheet-url').value;
-            WEBHOOK_URL = document.getElementById('cfg-webhook-url').value;
-            SUPABASE_URL = document.getElementById('cfg-supabase-url').value;
-            SUPABASE_KEY = document.getElementById('cfg-supabase-key').value;
-
-            localStorage.setItem('so_gsheet_url', SPREADSHEET_URL);
-            localStorage.setItem('so_webhook_url', WEBHOOK_URL);
-            localStorage.setItem('so_supabase_url', SUPABASE_URL);
-            localStorage.setItem('so_supabase_key', SUPABASE_KEY);
-
-            initSupabaseClient();
-            updateIndicators();
-            closeConfigModal();
-            fetchAllData();
-            showToast("Konfigurasi tersimpan!", "success");
-        }
-
-        function showToast(message, type = 'info') {
-            const container = document.getElementById('toast-container');
-            if (!container) return;
-
-            const toast = document.createElement('div');
-            let bgClass = type === 'success' ? 'bg-emerald-600 text-white' : (type === 'error' ? 'bg-rose-600 text-white' : 'bg-slate-800 text-white');
-            
-            toast.className = `${bgClass} p-3 rounded-xl shadow-xl text-xs font-bold flex items-center justify-between transition-all duration-200`;
-            toast.innerText = message;
-            container.appendChild(toast);
-            setTimeout(() => { if (toast && toast.parentElement) toast.remove(); }, 3500);
-        }
-    </script>
+      }
+      return createJsonResponse({status: "success"});
+    }
+  } catch (err) {
+    return createJsonResponse({status: "error", message: err.toString()});
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function doGet(e) {
+  var action = e ? e.parameter.action : "";
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  
+  if (action === "GET_INITIAL_DATA" || action === "GET_ALL") {
+    return createJsonResponse({
+      status: "success",
+      officers: fetchOfficers(ss),
+      revisiItems: fetchRevisiList(ss)
+    });
+  }
+}
+
+function fetchOfficers(ss) {
+  var sheet = ss.getSheetByName("Petugas");
+  var officers = { SURTOK: [], AUDIT: [] };
+  if (!sheet) return officers;
+  var values = sheet.getDataRange().getDisplayValues();
+  for (var i = 1; i < values.length; i++) {
+    if (values[i][0]) officers.SURTOK.push(values[i][0].trim());
+    if (values[i][1]) officers.AUDIT.push(values[i][1].trim());
+  }
+  return officers;
+}
+
+function fetchRevisiList(ss) {
+  var sheet = ss.getSheetByName("Revisi Double Cek SO");
+  if (!sheet) return [];
+  var values = sheet.getDataRange().getDisplayValues();
+  if (values.length <= 1) return [];
+  var headers = values[0];
+  var list = [];
+  for (var i = 1; i < values.length; i++) {
+    var row = values[i];
+    list.push({
+      id: "REV-" + i,
+      officer: row[headers.indexOf("Petugas")],
+      rack: row[headers.indexOf("Rak")],
+      sku: row[headers.indexOf("Kode Item")],
+      barcode: row[headers.indexOf("Kode Original")],
+      name: row[headers.indexOf("Nama Item")],
+      audit: parseInt(row[headers.indexOf("Audit")]) || 0,
+      surtok: parseInt(row[headers.indexOf("Surtok")]) || 0,
+      selisih: parseInt(row[headers.indexOf("Selisih")]) || 0,
+      qtyRevisi: row[headers.indexOf("QTY Revisi")]
+    });
+  }
+  return list;
+}
+
+function getHeaderMap(existingHeaders, requiredHeaders) {
+  var map = {};
+  requiredHeaders.forEach(function(h, idx) {
+    var pos = existingHeaders.indexOf(h);
+    map[h] = pos !== -1 ? pos : idx;
+  });
+  return map;
+}
+
+function createJsonResponse(data) {
+  return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
+}`;
+
+        document.getElementById('gasCodeContainer').textContent = gasCode;
+        document.getElementById('gasModal').classList.remove('hidden');
+      },
+
+      copyGasCode() {
+        haptics.vibrate(20);
+        const text = document.getElementById('gasCodeContainer').textContent;
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        this.showToast('Kode Script disalin!', 'emerald');
+      },
+
+      showToast(msg, theme = 'emerald') {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        
+        let colorClasses = "bg-emerald-950/90 border-emerald-600/80 text-emerald-200";
+        if (theme === 'amber') colorClasses = "bg-amber-950/90 border-amber-600/80 text-amber-200";
+        if (theme === 'rose') colorClasses = "bg-rose-950/90 border-rose-600/80 text-rose-200";
+        if (theme === 'indigo') colorClasses = "bg-indigo-950/90 border-indigo-600/80 text-indigo-200";
+
+        toast.className = `pointer-events-auto px-4 py-2.5 rounded-2xl border shadow-2xl text-xs font-bold flex items-center gap-2 transition-all duration-300 transform -translate-y-2 opacity-0 ${colorClasses}`;
+        toast.innerHTML = `<i class="fa-solid fa-circle-info"></i> <span>${msg}</span>`;
+
+        container.appendChild(toast);
+
+        setTimeout(() => {
+          toast.classList.remove('-translate-y-2', 'opacity-0');
+        }, 10);
+
+        setTimeout(() => {
+          toast.classList.add('opacity-0', '-translate-y-2');
+          setTimeout(() => toast.remove(), 300);
+        }, 3000);
+      }
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      app.init();
+    });
+  </script>
 </body>
 </html>
