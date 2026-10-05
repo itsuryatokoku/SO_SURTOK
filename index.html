@@ -157,9 +157,15 @@
     <main class="flex-1 overflow-y-auto p-3 sm:p-4 custom-scrollbar w-full pb-28">
 
       <!-- ================================================================= -->
-      <!-- TAB 1: STOCK OPNAME FISIK & HASIL SO                              -->
+      <!-- HALAMAN UTAMA (#so): STOCK OPNAME FISIK & LOG HASIL SO            -->
       <!-- ================================================================= -->
       <div id="page-so" class="space-y-3.5">
+        <div class="flex items-center justify-between bg-slate-900/80 px-3 py-2 rounded-xl border border-slate-800/80 text-xs">
+          <span class="font-black text-brand-400 flex items-center gap-1.5 font-mono">
+            <i class="fa-solid fa-barcode"></i> HALAMAN UTAMA (SO & HASIL SO)
+          </span>
+          <span class="text-[10px] bg-brand-500/20 text-brand-300 font-mono font-bold px-2 py-0.5 rounded border border-brand-500/30">#so</span>
+        </div>
         
         <!-- SUB NAVIGATION TOGGLE FOR MOBILE -->
         <div class="grid grid-cols-2 p-1 bg-slate-900/90 border border-slate-800 rounded-2xl text-xs font-semibold shadow-inner">
@@ -363,9 +369,15 @@
       </div>
 
       <!-- ================================================================= -->
-      <!-- TAB 2: HALAMAN REVISI SO                                          -->
+      <!-- HALAMAN 2 (#RevisiSO): REVISI SO SELISIH AUDIT                    -->
       <!-- ================================================================= -->
       <div id="page-revisi" class="hidden space-y-3.5">
+        <div class="flex items-center justify-between bg-slate-900/80 px-3 py-2 rounded-xl border border-slate-800/80 text-xs">
+          <span class="font-black text-amber-400 flex items-center gap-1.5 font-mono">
+            <i class="fa-solid fa-list-check"></i> HALAMAN REVISI SO
+          </span>
+          <span class="text-[10px] bg-amber-500/20 text-amber-300 font-mono font-bold px-2 py-0.5 rounded border border-amber-500/30">#RevisiSO</span>
+        </div>
         
         <!-- SUMMARY STATS BANNER -->
         <div class="grid grid-cols-3 gap-2 text-center text-xs">
@@ -438,29 +450,97 @@
       </div>
 
       <!-- ================================================================= -->
-      <!-- TAB 3: HALAMAN ADMINISTRATOR                                      -->
+      <!-- HALAMAN 3 (#admin): ADMINISTRATOR CONTROL HUB                    -->
       <!-- ================================================================= -->
       <div id="page-admin" class="hidden space-y-3.5">
+        <div class="flex items-center justify-between bg-slate-900/80 px-3 py-2 rounded-xl border border-slate-800/80 text-xs">
+          <span class="font-black text-purple-400 flex items-center gap-1.5 font-mono">
+            <i class="fa-solid fa-sliders"></i> HALAMAN ADMINISTRATOR
+          </span>
+          <span class="text-[10px] bg-purple-500/20 text-purple-300 font-mono font-bold px-2 py-0.5 rounded border border-purple-500/30">#admin</span>
+        </div>
         
-        <!-- SPREADSHEET DIRECT ACCESS CARD -->
-        <div class="glass-card rounded-2xl p-3.5 border border-emerald-900/60 bg-emerald-950/20 shadow-xl space-y-2.5">
-          <div class="flex items-center justify-between border-b border-emerald-800/40 pb-2">
-            <h3 class="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
-              <i class="fa-solid fa-arrows-rotate text-emerald-400"></i> Sinkronisasi Dua Arah (Bi-Directional)
+        <!-- FLUSH & SYNC CONTROL HUB CARD -->
+        <div class="glass-card rounded-2xl p-3.5 border border-amber-500/40 bg-amber-950/10 shadow-2xl space-y-3">
+          <div class="flex items-center justify-between border-b border-amber-800/40 pb-2">
+            <h3 class="text-xs font-black text-amber-300 flex items-center gap-2 tracking-wide">
+              <i class="fa-solid fa-arrows-rotate text-amber-400 text-sm"></i> ENGINE SINKRONISASI & FLUSH DATABASE
             </h3>
-            <span class="text-[9px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-md border border-emerald-500/30 font-mono font-bold">LIVE SYNC</span>
+            <span class="text-[9px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/30 font-mono font-bold">BI-DIRECTIONAL</span>
           </div>
-          <p class="text-[11px] text-slate-300 leading-relaxed">
-            1. <strong>Sheet ➔ Supabase:</strong> Kirim Master Item & Petugas.<br>
-            2. <strong>Supabase ➔ Sheet:</strong> Tarik Hasil SO & QTY Revisi.
-          </p>
-          <div class="grid grid-cols-2 gap-2 pt-1">
-            <button onclick="app.syncSheetMasterToSupabase()" class="py-2.5 bg-gradient-to-r from-brand-600 to-indigo-600 active:from-brand-500 active:to-indigo-500 text-white font-bold text-xs rounded-xl transition text-center shadow-lg flex items-center justify-center gap-1.5 active:scale-95">
-              <i class="fa-solid fa-cloud-arrow-up" id="syncMasterIcon"></i> Sheet ➔ Supabase
-            </button>
-            <button onclick="app.syncSupabaseToSpreadsheet()" class="py-2.5 bg-purple-950/80 active:bg-purple-900/80 border border-purple-700/60 text-purple-200 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 active:scale-95 shadow-lg">
-              <i class="fa-solid fa-cloud-arrow-down" id="syncSupabaseIcon"></i> Supabase ➔ Sheet
-            </button>
+
+          <!-- OPTION A: SPREADSHEET TO SUPABASE (PUSH & OVERWRITE) -->
+          <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold text-emerald-400 flex items-center gap-1.5">
+                <i class="fa-solid fa-cloud-arrow-up"></i> 1. Spreadsheet ➔ Supabase (Push & Flush)
+              </span>
+              <span class="text-[9px] text-slate-400 font-mono">Master & Petugas</span>
+            </div>
+            <p class="text-[10px] text-slate-400 leading-tight">
+              Unggah ulang seluruh data Master Item (70k SKU) dan Petugas dari Google Sheet ke tabel Supabase.
+            </p>
+            <div class="grid grid-cols-2 gap-2 pt-1">
+              <button onclick="app.syncSheetMasterToSupabase()" class="py-2.5 bg-brand-600 active:bg-brand-500 text-white font-bold text-xs rounded-xl shadow transition flex items-center justify-center gap-1.5 active:scale-95">
+                <i class="fa-solid fa-sync" id="syncMasterIcon"></i> Sync Master
+              </button>
+              <button onclick="app.triggerFlushMasterSheetToSupabase()" class="py-2.5 bg-rose-950/90 active:bg-rose-900 border border-rose-700/80 text-rose-200 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 active:scale-95 shadow">
+                <i class="fa-solid fa-trash-arrow-up text-rose-400" id="flushMasterIcon"></i> Flush & Sync Master
+              </button>
+            </div>
+          </div>
+
+          <!-- OPTION B: SUPABASE TO SPREADSHEET (PULL & OVERWRITE) -->
+          <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold text-purple-400 flex items-center gap-1.5">
+                <i class="fa-solid fa-cloud-arrow-down"></i> 2. Supabase ➔ Spreadsheet (Pull & Flush)
+              </span>
+              <span class="text-[9px] text-slate-400 font-mono">Hasil & Revisi SO</span>
+            </div>
+            <p class="text-[10px] text-slate-400 leading-tight">
+              Tarik data transaksi SO dari Supabase ke Sheet. Gunakan "Flush Hasil SO" untuk mengosongkan dan menulis ulang tab Hasil SO secara bersih.
+            </p>
+            <div class="grid grid-cols-2 gap-2 pt-1">
+              <button onclick="app.syncSupabaseToSpreadsheet()" class="py-2.5 bg-purple-950/90 active:bg-purple-900 border border-purple-700/80 text-purple-200 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 active:scale-95 shadow">
+                <i class="fa-solid fa-cloud-arrow-down" id="syncSupabaseIcon"></i> Sync Logs
+              </button>
+              <button onclick="app.triggerFlushAndRepopulateHasilSo()" class="py-2.5 bg-amber-950/90 active:bg-amber-900 border border-amber-700/80 text-amber-200 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 active:scale-95 shadow">
+                <i class="fa-solid fa-arrows-rotate text-amber-400" id="flushHasilSoIcon"></i> Flush Sheet Hasil SO
+              </button>
+            </div>
+          </div>
+
+          <!-- OPTION C: HP LOCAL CACHE (INDEXEDDB) FLUSH -->
+          <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold text-sky-400 flex items-center gap-1.5">
+                <i class="fa-solid fa-hard-drive"></i> 3. Cache Memori HP Local (IndexedDB)
+              </span>
+              <span class="text-[9px] text-slate-400 font-mono" id="adminMasterCacheBadge">0 SKU</span>
+            </div>
+            <p class="text-[10px] text-slate-400 leading-tight">
+              Kosongkan cache SKU lokal di HP atau unduh ulang 70.000 SKU dari Supabase untuk pemindaian offline kilat.
+            </p>
+            <div class="grid grid-cols-2 gap-2 pt-1">
+              <button onclick="app.flushAndReloadLocalCacheFromSupabase()" class="py-2.5 bg-sky-950/90 active:bg-sky-900 border border-sky-700/80 text-sky-200 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 active:scale-95 shadow">
+                <i class="fa-solid fa-rotate text-sky-400" id="reloadLocalCacheIcon"></i> Reload Cache Supabase
+              </button>
+              <button onclick="app.flushMasterDatabase()" class="py-2.5 bg-slate-800 active:bg-slate-700 border border-slate-700 text-slate-300 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 active:scale-95 shadow">
+                <i class="fa-solid fa-trash-can text-slate-400"></i> Clear Cache HP
+              </button>
+            </div>
+          </div>
+
+          <!-- REAL-TIME DIAGNOSTIC CONSOLE TERMINAL -->
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold text-slate-400 uppercase font-mono">Terminal Log Eksekusi Admin</span>
+              <button onclick="document.getElementById('adminConsoleOutput').innerHTML='[SYSTEM] Console cleared.'" class="text-[9px] text-brand-400 hover:underline">Clear</button>
+            </div>
+            <div id="adminConsoleOutput" class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 font-mono text-[10px] text-emerald-400 h-28 overflow-y-auto custom-scrollbar leading-relaxed whitespace-pre-wrap">
+              [SYSTEM] Admin Flush & Sync Hub Ready.
+            </div>
           </div>
         </div>
 
@@ -714,6 +794,36 @@
     </div>
   </div>
 
+  <!-- MODAL 5: CUSTOM ADMIN CONFIRMATION SHEET -->
+  <div id="adminConfirmModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-end justify-center max-w-[480px] mx-auto">
+    <div class="bg-slate-900 border-t border-slate-800 rounded-t-3xl w-full p-4 space-y-3.5 shadow-2xl sheet-slide-up pb-safe">
+      <div class="w-12 h-1.5 bg-slate-700 rounded-full mx-auto"></div>
+      
+      <div class="flex items-start justify-between">
+        <div class="space-y-1">
+          <span class="text-[9px] bg-rose-500/20 text-rose-300 font-mono font-bold px-2 py-0.5 rounded border border-rose-500/30">KONFIRMASI ADMIN</span>
+          <h3 class="text-xs font-black text-white mt-1" id="adminConfirmTitle">Aksi Bahaya</h3>
+        </div>
+        <button onclick="app.closeAdminConfirmModal()" class="text-slate-400 hover:text-white">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <p class="text-xs text-slate-300 leading-relaxed bg-slate-950 p-3 rounded-xl border border-slate-800" id="adminConfirmMessage">
+        Apakah Anda yakin ingin melanjutkan tindakan ini?
+      </p>
+
+      <div class="grid grid-cols-2 gap-2 pt-1">
+        <button onclick="app.closeAdminConfirmModal()" class="py-3 bg-slate-800 text-slate-300 font-bold text-xs rounded-xl active:scale-95">
+          Batal
+        </button>
+        <button id="adminConfirmExecuteBtn" class="py-3 bg-gradient-to-r from-rose-600 to-red-600 text-white font-black text-xs rounded-xl shadow-lg active:scale-95">
+          YA, JALANKAN
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- TOAST NOTIFICATION CONTAINER -->
   <div id="toastContainer" class="fixed top-14 inset-x-4 z-50 space-y-2 pointer-events-none flex flex-col items-center max-w-[440px] mx-auto"></div>
 
@@ -732,35 +842,6 @@
           try { navigator.vibrate(ms); } catch(e){}
         }
       }
-    };
-
-    const state = {
-      currentTab: 'so',
-      currentSoSubView: 'input',
-      sessionLocked: false,
-      session: {
-        team: 'SURTOK',
-        officer: '',
-        rack: '',
-        phase: 'Fase 1'
-      },
-      webhookUrl: localStorage.getItem('so_webhookUrl') || DEFAULT_WEBHOOK_URL,
-      supabaseUrl: localStorage.getItem('so_supabaseUrl') || DEFAULT_SUPABASE_URL,
-      supabaseKey: localStorage.getItem('so_supabaseKey') || DEFAULT_SUPABASE_KEY,
-      supabaseClient: null,
-
-      masterItemsMap: new Map(),
-      officers: {
-        SURTOK: ['Budi Surtok', 'Andi Surtok', 'Dedi Surtok', 'Eko Surtok'],
-        AUDIT: ['Hendra Audit', 'Siti Audit', 'Rina Audit', 'Maya Audit']
-      },
-      soLogs: JSON.parse(localStorage.getItem('so_logs') || '[]'),
-      revisiItems: [],
-      pendingQueue: JSON.parse(localStorage.getItem('so_pendingQueue') || '[]'),
-
-      selectedItem: null,
-      activeRevisiEdit: null,
-      scanner: null
     };
 
     const audioSynth = {
@@ -800,6 +881,36 @@
       }
     };
 
+    const state = {
+      currentTab: 'so',
+      currentSoSubView: 'input',
+      sessionLocked: false,
+      session: {
+        team: 'SURTOK',
+        officer: '',
+        rack: '',
+        phase: 'Fase 1'
+      },
+      webhookUrl: localStorage.getItem('so_webhookUrl') || DEFAULT_WEBHOOK_URL,
+      supabaseUrl: localStorage.getItem('so_supabaseUrl') || DEFAULT_SUPABASE_URL,
+      supabaseKey: localStorage.getItem('so_supabaseKey') || DEFAULT_SUPABASE_KEY,
+      supabaseClient: null,
+
+      masterItemsMap: new Map(),
+      officers: {
+        SURTOK: ['Budi Surtok', 'Andi Surtok', 'Dedi Surtok', 'Eko Surtok'],
+        AUDIT: ['Hendra Audit', 'Siti Audit', 'Rina Audit', 'Maya Audit']
+      },
+      soLogs: JSON.parse(localStorage.getItem('so_logs') || '[]'),
+      revisiItems: [],
+      pendingQueue: JSON.parse(localStorage.getItem('so_pendingQueue') || '[]'),
+
+      selectedItem: null,
+      activeRevisiEdit: null,
+      adminConfirmCallback: null,
+      scanner: null
+    };
+
     const dbEngine = {
       dbName: 'StockOpnameMobileProDB',
       dbVersion: 1,
@@ -829,7 +940,9 @@
         return new Promise((resolve, reject) => {
           const tx = this.db.transaction('masterItems', 'readwrite');
           const store = tx.objectStore('masterItems');
-          items.forEach(item => store.put(item));
+          items.forEach(item => {
+            if (item && item.sku) store.put(item);
+          });
           tx.oncomplete = () => resolve(true);
           tx.onerror = (e) => reject(e);
         });
@@ -866,8 +979,8 @@
         const cachedItems = await dbEngine.getAllItems();
         if (cachedItems && cachedItems.length > 0) {
           cachedItems.forEach(item => {
-            state.masterItemsMap.set(item.sku, item);
-            if (item.barcode) state.masterItemsMap.set(item.barcode, item);
+            if (item && item.sku) state.masterItemsMap.set(item.sku, item);
+            if (item && item.barcode) state.masterItemsMap.set(item.barcode, item);
           });
         } else {
           this.seedMockMasterData(false);
@@ -1007,7 +1120,7 @@
         });
 
         filterRevOfficer.innerHTML = '<option value="">Semua Petugas</option>';
-        const allOfficers = [...state.officers.SURTOK, ...state.officers.AUDIT];
+        const allOfficers = [...(state.officers.SURTOK || []), ...(state.officers.AUDIT || [])];
         allOfficers.forEach(off => {
           filterRevOfficer.innerHTML += `<option value="${off}">${off}</option>`;
         });
@@ -1107,9 +1220,10 @@
         const qLower = cleanQuery.toLowerCase();
         
         for (let item of state.masterItemsMap.values()) {
+          if (!item || !item.sku) continue;
           if (item.sku.toLowerCase().includes(qLower) || 
               (item.barcode && item.barcode.toLowerCase().includes(qLower)) ||
-              item.name.toLowerCase().includes(qLower)) {
+              (item.name && item.name.toLowerCase().includes(qLower))) {
             matches.push(item);
             if (matches.length >= 6) break;
           }
@@ -1119,7 +1233,7 @@
           dropdown.classList.remove('hidden');
           dropdown.innerHTML = matches.map(m => `
             <div onclick="app.selectItemFromSuggestion('${m.sku}')" class="p-2.5 hover:bg-slate-800 active:bg-slate-700 cursor-pointer transition">
-              <div class="text-xs font-bold text-white">${m.name}</div>
+              <div class="text-xs font-bold text-white">${m.name || m.sku}</div>
               <div class="flex items-center justify-between text-[10px] font-mono text-slate-400 mt-0.5">
                 <span>SKU: <strong class="text-emerald-400">${m.sku}</strong></span>
                 <span>${m.barcode || '-'}</span>
@@ -1273,10 +1387,9 @@
           }
         });
 
-        // INTEGRASI SUPABASE POSTGRESQL DENGAN DETEKSI ERROR RESPONSE
+        // INTEGRASI SUPABASE POSTGRESQL
         if (state.supabaseClient) {
           try {
-            // Upsert produk ke tabel products terlebih dahulu agar Foreign Key 'stock_opname_logs_sku_fkey' selalu terpenuhi
             if (state.selectedItem && state.selectedItem.sku) {
               await state.supabaseClient.from('products').upsert([{
                 sku: state.selectedItem.sku,
@@ -1286,7 +1399,7 @@
               }], { onConflict: 'sku' });
             }
 
-            const { data, error } = await state.supabaseClient.from('stock_opname_logs').insert([{
+            const { error } = await state.supabaseClient.from('stock_opname_logs').insert([{
               id: logEntry.id,
               timestamp: logEntry.timestamp,
               phase: logEntry.phase,
@@ -1303,9 +1416,6 @@
 
             if (error) {
               console.error('Supabase Direct Insert Error:', error);
-              this.showToast(`Supabase: ${error.message}`, 'amber');
-            } else {
-              console.log('Berhasil tersimpan di Supabase!');
             }
           } catch(err) {
             console.error('Supabase direct insert exception:', err);
@@ -1552,6 +1662,147 @@
         });
       },
 
+      logAdminConsole(msg, theme = 'info') {
+        const consoleEl = document.getElementById('adminConsoleOutput');
+        if (!consoleEl) return;
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        let prefix = `[${timeStr}] `;
+        
+        let colorClass = "text-emerald-400";
+        if (theme === 'warn') colorClass = "text-amber-400";
+        if (theme === 'error') colorClass = "text-rose-400";
+        if (theme === 'sky') colorClass = "text-sky-300";
+
+        consoleEl.innerHTML += `\n<span class="${colorClass}">${prefix}${msg}</span>`;
+        consoleEl.scrollTop = consoleEl.scrollHeight;
+      },
+
+      showAdminConfirm(title, message, callback) {
+        haptics.vibrate(40);
+        state.adminConfirmCallback = callback;
+        document.getElementById('adminConfirmTitle').textContent = title;
+        document.getElementById('adminConfirmMessage').textContent = message;
+        
+        const btn = document.getElementById('adminConfirmExecuteBtn');
+        btn.onclick = () => {
+          this.closeAdminConfirmModal();
+          if (state.adminConfirmCallback) state.adminConfirmCallback();
+        };
+
+        document.getElementById('adminConfirmModal').classList.remove('hidden');
+      },
+
+      closeAdminConfirmModal() {
+        haptics.vibrate(15);
+        document.getElementById('adminConfirmModal').classList.add('hidden');
+        state.adminConfirmCallback = null;
+      },
+
+      triggerFlushMasterSheetToSupabase() {
+        this.showAdminConfirm(
+          "FLUSH & SYNC MASTER ITEM",
+          "Aksi ini akan menghapus (FLUSH) seluruh data Master Item SKU pada database Supabase, lalu mengunggah ulang dari tab 'Master Item' Google Spreadsheet. Lanjutkan?",
+          () => this.flushAndSyncMasterToSupabase()
+        );
+      },
+
+      triggerFlushAndRepopulateHasilSo() {
+        this.showAdminConfirm(
+          "FLUSH & RE-POPULATE TAB HASIL SO",
+          "Aksi ini akan mengosongkan seluruh baris di tab 'Hasil SO' pada Google Spreadsheet, lalu mengisi ulang dengan data transaksi bersih dari Supabase stock_opname_logs. Lanjutkan?",
+          () => this.flushAndRepopulateHasilSoInSheet()
+        );
+      },
+
+      async flushAndRepopulateHasilSoInSheet() {
+        haptics.vibrate(30);
+        const icon = document.getElementById('flushHasilSoIcon');
+        if (icon) icon.classList.add('fa-spin');
+
+        this.logAdminConsole("Memulai Flush & Re-populate tab 'Hasil SO' dari Supabase...", "warn");
+        this.showToast("Memulai Flush Sheet Hasil SO...", "amber");
+
+        try {
+          const res = await fetch(state.webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action: 'FLUSH_AND_REPOPULATE_HASIL_SO' })
+          });
+
+          if (res.ok) {
+            const result = await res.json();
+            if (result.status === 'success') {
+              this.logAdminConsole(`SUKSES: ${result.message} (${result.totalSynced || 0} baris).`, "emerald");
+              this.showToast(`Sukses! ${result.totalSynced || 0} baris Hasil SO di-populate ulang!`, "emerald");
+              audioSynth.playBeep();
+            } else {
+              this.logAdminConsole(`GAGAL: ${result.message}`, "error");
+              this.showToast(`Gagal: ${result.message}`, "rose");
+              audioSynth.playError();
+            }
+          } else {
+            this.logAdminConsole("Gagal koneksi HTTP ke Webhook Apps Script.", "error");
+            this.showToast("Gagal koneksi ke Webhook Apps Script", "rose");
+          }
+        } catch (err) {
+          this.logAdminConsole(`EXCEPTION: ${err.message}`, "error");
+          this.showToast("Error Flush Sheet Hasil SO", "rose");
+        } finally {
+          if (icon) icon.classList.remove('fa-spin');
+        }
+      },
+
+      async flushAndReloadLocalCacheFromSupabase() {
+        haptics.vibrate(30);
+        const icon = document.getElementById('reloadLocalCacheIcon');
+        if (icon) icon.classList.add('fa-spin');
+
+        this.logAdminConsole("Menarik data Master SKU dari Supabase ke IndexedDB HP...", "sky");
+        this.showToast("Mengunduh Master Item Supabase ke Memori HP...", "indigo");
+
+        try {
+          if (!state.supabaseClient) {
+            this.logAdminConsole("Error: Klien Supabase belum terhubung.", "error");
+            this.showToast("Klien Supabase belum terhubung!", "rose");
+            return;
+          }
+
+          const { data, error } = await state.supabaseClient
+            .from('products')
+            .select('*');
+
+          if (error) {
+            this.logAdminConsole(`Supabase Fetch Error: ${error.message}`, "error");
+            this.showToast(`Error Supabase: ${error.message}`, "rose");
+            return;
+          }
+
+          if (data && data.length > 0) {
+            await dbEngine.clearMasterStore();
+            await dbEngine.saveItemsBatch(data);
+            
+            state.masterItemsMap.clear();
+            data.forEach(item => {
+              if (item && item.sku) state.masterItemsMap.set(item.sku, item);
+              if (item && item.barcode) state.masterItemsMap.set(item.barcode, item);
+            });
+
+            this.updateMasterCountDisplay();
+            this.logAdminConsole(`SUKSES! ${data.length} SKU berhasil di-cache ke memori IndexedDB HP.`, "emerald");
+            this.showToast(`Sukses! ${data.length} SKU di-cache ke HP!`, "emerald");
+            audioSynth.playBeep();
+          } else {
+            this.logAdminConsole("Peringatan: Tabel products di Supabase kosong.", "warn");
+            this.showToast("Tabel products Supabase kosong.", "amber");
+          }
+        } catch (err) {
+          this.logAdminConsole(`Exception Local Cache: ${err.message}`, "error");
+          this.showToast("Gagal reload cache HP", "rose");
+        } finally {
+          if (icon) icon.classList.remove('fa-spin');
+        }
+      },
+
       renderRackCompletionMatrix() {
         const container = document.getElementById('rackCompletionList');
         
@@ -1592,8 +1843,8 @@
         const surtokUl = document.getElementById('listSurtokOfficers');
         const auditUl = document.getElementById('listAuditOfficers');
 
-        surtokUl.innerHTML = state.officers.SURTOK.map(o => `<li class="flex items-center justify-between py-0.5"><span>${o}</span> <button onclick="app.removeOfficer('SURTOK', '${o}')" class="text-rose-500 hover:text-rose-400">&times;</button></li>`).join('');
-        auditUl.innerHTML = state.officers.AUDIT.map(o => `<li class="flex items-center justify-between py-0.5"><span>${o}</span> <button onclick="app.removeOfficer('AUDIT', '${o}')" class="text-rose-500 hover:text-rose-400">&times;</button></li>`).join('');
+        surtokUl.innerHTML = (state.officers.SURTOK || []).map(o => `<li class="flex items-center justify-between py-0.5"><span>${o}</span> <button onclick="app.removeOfficer('SURTOK', '${o}')" class="text-rose-500 hover:text-rose-400">&times;</button></li>`).join('');
+        auditUl.innerHTML = (state.officers.AUDIT || []).map(o => `<li class="flex items-center justify-between py-0.5"><span>${o}</span> <button onclick="app.removeOfficer('AUDIT', '${o}')" class="text-rose-500 hover:text-rose-400">&times;</button></li>`).join('');
       },
 
       addOfficerPrompt() {
@@ -1657,7 +1908,7 @@
         const icon = document.getElementById('syncMasterIcon');
         if (icon) icon.classList.add('fa-spin');
 
-        this.showToast('Mengunggah Master Item dari Sheet ke Supabase...', 'indigo');
+        this.showToast('Mengunggah Master Item & Petugas ke Supabase...', 'indigo');
 
         try {
           const res = await fetch(state.webhookUrl, {
@@ -1669,7 +1920,7 @@
           if (res.ok) {
             const data = await res.json();
             if (data.status === 'success') {
-              this.showToast(`Sukses! ${data.totalSynced || 0} SKU Master terupdate ke Supabase!`, 'emerald');
+              this.showToast(`Sukses! ${data.totalSynced || 0} SKU & ${data.totalOfficersSynced || 0} Petugas terupdate ke Supabase!`, 'emerald');
               audioSynth.playBeep();
             } else {
               this.showToast(`Gagal: ${data.message}`, 'rose');
@@ -1690,26 +1941,72 @@
 
       async flushAndSyncMasterToSupabase() {
         haptics.vibrate(40);
-        if (!confirm("Apakah Anda yakin ingin menghapus (FLUSH) seluruh data Master Item di Supabase dan mengunggah ulang dari Spreadsheet?")) {
-          return;
-        }
-
         const icon = document.getElementById('flushMasterIcon');
         if (icon) icon.classList.add('fa-spin');
 
         this.showToast('Memulai Flush & Sync Master ke Supabase...', 'indigo');
 
         try {
-          const res = await fetch(state.webhookUrl, {
+          const res = await fetch(`${state.webhookUrl}?action=GET_MASTER_ITEMS`);
+          let items = [];
+
+          if (res.ok) {
+            const resData = await res.json();
+            if (resData.status === 'success' && Array.isArray(resData.data)) {
+              items = resData.data;
+            }
+          }
+
+          if (items.length > 0 && state.supabaseClient) {
+            this.showToast(`Menerima ${items.length} SKU dari Sheet. Menghapus data lama di Supabase...`, 'indigo');
+
+            const { error: delError } = await state.supabaseClient
+              .from('products')
+              .delete()
+              .neq('sku', '');
+
+            if (delError) {
+              console.warn('Supabase Flush Delete Warning:', delError);
+            }
+
+            const chunkSize = 250;
+            let uploadedCount = 0;
+
+            for (let i = 0; i < items.length; i += chunkSize) {
+              const chunk = items.slice(i, i + chunkSize);
+              const { error: insError } = await state.supabaseClient
+                .from('products')
+                .upsert(chunk, { onConflict: 'sku' });
+
+              if (!insError) {
+                uploadedCount += chunk.length;
+              } else {
+                console.error('Batch Upload Chunk Error:', insError);
+              }
+            }
+
+            await dbEngine.saveItemsBatch(items);
+            items.forEach(item => {
+              if (item && item.sku) state.masterItemsMap.set(item.sku, item);
+              if (item && item.barcode) state.masterItemsMap.set(item.barcode, item);
+            });
+            this.updateMasterCountDisplay();
+
+            this.showToast(`SUKSES! ${uploadedCount} SKU Master ter-Flush & Sync ke Supabase!`, 'emerald');
+            audioSynth.playBeep();
+            return;
+          }
+
+          const webhookRes = await fetch(state.webhookUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify({ action: 'FLUSH_AND_SYNC_MASTER' })
           });
 
-          if (res.ok) {
-            const data = await res.json();
+          if (webhookRes.ok) {
+            const data = await webhookRes.json();
             if (data.status === 'success') {
-              this.showToast(`Sukses Flush & Re-upload ${data.totalSynced || 0} SKU Master ke Supabase!`, 'emerald');
+              this.showToast(`Sukses Flush & Re-upload ${data.totalSynced || 0} SKU ke Supabase!`, 'emerald');
               audioSynth.playBeep();
             } else {
               this.showToast(`Gagal: ${data.message}`, 'rose');
@@ -1719,9 +2016,10 @@
             this.showToast('Gagal terhubung ke Webhook Apps Script', 'rose');
             audioSynth.playError();
           }
+
         } catch (e) {
           console.error('Error Flush & Sync Master:', e);
-          this.showToast('Error koneksi Webhook', 'rose');
+          this.showToast('Error: ' + e.message, 'rose');
           audioSynth.playError();
         } finally {
           if (icon) icon.classList.remove('fa-spin');
@@ -1729,7 +2027,6 @@
       },
 
       updateMasterCountDisplay() {
-        // Calculate unique SKU count from IndexedDB Map
         const uniqueSkus = new Set();
         if (state.masterItemsMap && state.masterItemsMap.size > 0) {
           for (let [key, item] of state.masterItemsMap.entries()) {
@@ -1737,9 +2034,10 @@
           }
         }
         const badge = document.getElementById('masterSkuCountBadge');
-        if (badge) {
-          badge.textContent = `${uniqueSkus.size} SKU Cached`;
-        }
+        if (badge) badge.textContent = `${uniqueSkus.size} SKU Cached`;
+
+        const adminBadge = document.getElementById('adminMasterCacheBadge');
+        if (adminBadge) adminBadge.textContent = `${uniqueSkus.size} SKU Cached`;
       },
 
       async postToWebhook(payload) {
@@ -1846,6 +2144,14 @@
       switchTab(tab) {
         haptics.vibrate(15);
         state.currentTab = tab;
+        
+        let targetHash = '#so';
+        if (tab === 'revisi') targetHash = '#RevisiSO';
+        if (tab === 'admin') targetHash = '#admin';
+        if (window.location.hash !== targetHash) {
+          history.replaceState(null, '', targetHash);
+        }
+
         ['so', 'revisi', 'admin'].forEach(t => {
           document.getElementById(`page-${t}`).classList.add('hidden');
           const btn = document.getElementById(`tabBtn-${t}`);
@@ -1859,25 +2165,36 @@
         if (tab === 'revisi') this.fetchRevisiSheetData();
       },
 
-      switchSoSubView(sub) {
+      switchSoSubView(view) {
         haptics.vibrate(15);
-        state.currentSoSubView = sub;
+        state.currentSoSubView = view;
         const btnInput = document.getElementById('btnSubTabInput');
         const btnHasil = document.getElementById('btnSubTabHasil');
         const viewInput = document.getElementById('soSubViewInput');
         const viewHasil = document.getElementById('soSubViewHasil');
 
-        if (sub === 'input') {
-          viewInput.classList.remove('hidden');
-          viewHasil.classList.add('hidden');
+        if (view === 'input') {
           btnInput.className = "py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 text-white shadow-md transition flex items-center justify-center gap-2 active:scale-95";
           btnHasil.className = "py-2.5 rounded-xl text-slate-400 hover:text-white transition flex items-center justify-center gap-2 active:scale-95";
+          viewInput.classList.remove('hidden');
+          viewHasil.classList.add('hidden');
         } else {
-          viewInput.classList.add('hidden');
-          viewHasil.classList.remove('hidden');
           btnHasil.className = "py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 text-white shadow-md transition flex items-center justify-center gap-2 active:scale-95";
           btnInput.className = "py-2.5 rounded-xl text-slate-400 hover:text-white transition flex items-center justify-center gap-2 active:scale-95";
+          viewHasil.classList.remove('hidden');
+          viewInput.classList.add('hidden');
           this.renderHasilSoTable();
+        }
+      },
+
+      handleHashRouting() {
+        const hash = (window.location.hash || '').toLowerCase();
+        if (hash === '#revisiso' || hash === '#revisi') {
+          this.switchTab('revisi');
+        } else if (hash === '#admin') {
+          this.switchTab('admin');
+        } else {
+          this.switchTab('so');
         }
       },
 
@@ -2007,7 +2324,6 @@ CREATE TABLE IF NOT EXISTS public.stock_opname_logs (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Hapus Foreign Key Constraint jika ada agar SKU baru/belum terdaftar di master tetap bisa di-SO
 ALTER TABLE public.stock_opname_logs DROP CONSTRAINT IF EXISTS stock_opname_logs_sku_fkey;`;
 
         document.getElementById('supabaseSqlCodeContainer').textContent = sqlCode;
@@ -2053,6 +2369,8 @@ ALTER TABLE public.stock_opname_logs DROP CONSTRAINT IF EXISTS stock_opname_logs
 
     window.addEventListener('DOMContentLoaded', () => {
       app.init();
+      app.handleHashRouting();
+      window.addEventListener('hashchange', () => app.handleHashRouting());
     });
   </script>
 </body>
